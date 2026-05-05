@@ -21,6 +21,10 @@ struct Cli {
     #[arg(long)]
     stdin: bool,
 
+    /// read length-prefixed markdown from stdin and re-render continuously
+    #[arg(long)]
+    pipe: bool,
+
     /// watch file for changes and re-render (only with --tui)
     #[arg(short, long)]
     watch: bool,
@@ -36,6 +40,12 @@ fn main() {
     // stdin mode
     if cli.stdin {
         tui::render_stdin();
+        return;
+    }
+
+    // pipe mode (nvim split)
+    if cli.pipe {
+        tui::pipe_mode();
         return;
     }
 
