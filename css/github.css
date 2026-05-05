@@ -37,17 +37,18 @@
     border-left-color: #30363d;
     color: #8b949e;
   }
+  .markdown-body table {
+    background: #0d1117;
+  }
   .markdown-body table th {
-    background: #161b22;
+    background: #21262d;
     border-color: #30363d;
   }
   .markdown-body table td {
+    background: #0d1117;
     border-color: #30363d;
   }
-  .markdown-body table tr {
-    background: #0d1117;
-  }
-  .markdown-body table tr:nth-child(2n) {
+  .markdown-body table tr:nth-child(2n) td {
     background: #161b22;
   }
   .markdown-body hr {
@@ -141,6 +142,7 @@
   border-collapse: collapse;
   width: 100%;
   margin-bottom: 16px;
+  background: #ffffff;
 }
 
 .markdown-body table th,
@@ -154,7 +156,11 @@
   background: #f6f8fa;
 }
 
-.markdown-body table tr:nth-child(2n) {
+.markdown-body table td {
+  background: #ffffff;
+}
+
+.markdown-body table tr:nth-child(2n) td {
   background: #f6f8fa;
 }
 
