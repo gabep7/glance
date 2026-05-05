@@ -16,6 +16,7 @@ notify = { version = "7", features = ["macos_fsevent"] }
 directories = "6"
 clap = { version = "4", features = ["derive"] }
 termimad = "0.31"
+libc = "0.2"
 
 [profile.release]
 opt-level = "z"

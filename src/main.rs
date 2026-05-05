@@ -29,6 +29,10 @@ struct Cli {
     #[arg(short, long)]
     watch: bool,
 
+    /// file to read cursor line from for scroll sync (only with --tui --watch)
+    #[arg(long)]
+    cursor_file: Option<String>,
+
     /// send command to running daemon instead of starting a new one
     #[arg(short, long)]
     daemon: bool,
@@ -59,7 +63,8 @@ fn main() {
                     std::process::exit(1);
                 }
                 if cli.watch {
-                    tui::poll_watch(&path);
+                    let cursor_file = cli.cursor_file.map(std::path::PathBuf::from);
+                    tui::poll_watch(&path, cursor_file);
                 } else {
                     tui::render_once(&path);
                 }

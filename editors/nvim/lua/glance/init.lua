@@ -7,11 +7,11 @@ local M = {
 
 local state = {
   tmpfile = nil,
+  cursor_file = nil,
   term_buf = nil,
   term_win = nil,
   source_win = nil,
   source_buf = nil,
-  attached = false,
 }
 
 local function write_to_tmp()
@@ -27,6 +27,28 @@ local function write_to_tmp()
     f:write(table.concat(lines, "\n"))
     f:close()
   end
+end
+
+local function write_cursor_line()
+  if not state.cursor_file or not state.source_win then
+    return
+  end
+  if not vim.api.nvim_win_is_valid(state.source_win) then
+    return
+  end
+  local cursor = vim.api.nvim_win_get_cursor(state.source_win)
+  local row = cursor[1] - 1 -- 0-indexed for rust
+  local f = io.open(state.cursor_file, "w")
+  if f then
+    f:write(tostring(row))
+    f:close()
+  end
+end
+
+
+
+local function on_cursor_moved()
+  write_cursor_line()
 end
 
 function M.open()
@@ -47,13 +69,18 @@ function M.open()
   state.source_win = vim.api.nvim_get_current_win()
   state.source_buf = buf
 
-  -- create temp file and write initial content
+  -- create temp files
   state.tmpfile = os.tmpname() .. ".md"
+  state.cursor_file = os.tmpname() .. ".cursor"
   write_to_tmp()
+  write_cursor_line()
 
   -- create split on the right and open terminal
   vim.cmd("rightbelow vnew")
-  vim.cmd("terminal " .. M.binary .. " --tui --watch " .. state.tmpfile)
+  vim.cmd("terminal " .. M.binary
+    .. " --tui --watch"
+    .. " --cursor-file " .. state.cursor_file
+    .. " " .. state.tmpfile)
   state.term_win = vim.api.nvim_get_current_win()
   state.term_buf = vim.api.nvim_get_current_buf()
 
@@ -71,6 +98,12 @@ function M.open()
     on_lines = function(...)
       write_to_tmp()
     end,
+  })
+
+  -- track cursor movement for scroll sync (immediate, poll loop caps rate)
+  vim.api.nvim_create_autocmd("CursorMoved", {
+    buffer = buf,
+    callback = on_cursor_moved,
   })
 
   -- cleanup when source buffer closes
@@ -93,6 +126,10 @@ function M.stop()
   if state.tmpfile then
     os.remove(state.tmpfile)
     state.tmpfile = nil
+  end
+  if state.cursor_file then
+    os.remove(state.cursor_file)
+    state.cursor_file = nil
   end
   state.term_buf = nil
   state.term_win = nil
