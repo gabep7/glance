@@ -1,0 +1,67 @@
+# glance
+
+markdown preview that scrolls with your cursor. terminal-first, editor-optional.
+
+## what
+
+- `glance --tui file.md` renders markdown in your terminal
+- `:Glance` in neovim opens a live side-by-side preview
+- cursor moves in source, preview scrolls to match
+- edits appear in real time, no save needed
+
+## install
+
+neovim (lazy.nvim):
+
+```lua
+{
+  "gabep7/glance",
+  build = "cargo build --release",
+  config = function()
+    require("glance").setup()
+  end,
+}
+```
+
+standalone:
+
+```bash
+cargo install --git https://github.com/gabep7/glance
+```
+
+## usage
+
+```
+# terminal preview
+glance --tui README.md
+
+# watch mode, re-renders on change
+glance --tui --watch README.md
+
+# render from stdin
+echo "# hello" | glance --stdin --tui
+```
+
+neovim keymaps (set automatically on `*.md`):
+
+| key | action |
+|-----|--------|
+| `<leader>gp` | toggle preview |
+| `<leader>gf` | jump to preview / back to source |
+| `<leader>gs` | freeze scroll sync |
+| `:Glance` | open preview |
+| `:GlanceStop` | close preview |
+
+## how it works
+
+neovim opens a `:terminal` split running `glance --tui --watch` against a temp file. edits and cursor position are written to temp files. a 30ms rust poll loop picks up changes and re-renders ANSI to the terminal. no daemon, no socket, no config.
+
+the preview viewport is proportional -- cursor at 30% through the source shows 30% through the rendered output. ANSI SGR state is tracked so sliced lines don't break formatting. terminal height comes from `ioctl(TIOCGWINSZ)`, not `$LINES`.
+
+## why
+
+existing markdown previewers either need a browser, a node runtime, a headless server, or don't follow your cursor. this is one binary, no dependencies at runtime, and scrolls with you.
+
+## editors
+
+nvim is complete. helix and zed integration planned.

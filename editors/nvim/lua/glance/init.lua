@@ -1,8 +1,31 @@
 -- glance.lua — nvim split preview for markdown
 
+local function find_binary()
+  -- check user config first
+  local cfg = vim.g.glance_binary or os.getenv("GLANCE_BIN")
+  if cfg and vim.fn.executable(cfg) == 1 then
+    return cfg
+  end
+  -- lazy.nvim build dir
+  local lazy_path = vim.fn.stdpath("data") .. "/lazy/glance/target/release/glance"
+  if vim.fn.executable(lazy_path) == 1 then
+    return lazy_path
+  end
+  -- dev path
+  local dev_path = vim.fn.expand("~/Projects/Personal/glance/target/release/glance")
+  if vim.fn.executable(dev_path) == 1 then
+    return dev_path
+  end
+  -- system path
+  if vim.fn.executable("glance") == 1 then
+    return "glance"
+  end
+  return nil
+end
+
 local M = {
   mode = "split",
-  binary = vim.fn.expand("~/Projects/Personal/glance/target/release/glance"),
+  binary = find_binary(),
 }
 
 local state = {
@@ -94,6 +117,10 @@ function M.sync_toggle()
 end
 
 function M.open()
+  if not M.binary then
+    vim.notify("glance: binary not found. run :lua require('glance').setup({ binary = '/path/to/glance' })", vim.log.levels.ERROR)
+    return
+  end
   local buf = vim.api.nvim_get_current_buf()
   local path = vim.api.nvim_buf_get_name(buf)
 
