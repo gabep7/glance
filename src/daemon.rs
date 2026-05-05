@@ -1,32 +1,49 @@
-use std::path::Path;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::path::{Path, PathBuf};
+use std::sync::mpsc;
 
-use tao::event_loop::{ControlFlow, EventLoop};
+use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tao::window::WindowBuilder;
 use wry::WebViewBuilder;
 
 use crate::render;
+use crate::watch;
+
+#[derive(Debug)]
+enum UserEvent {
+    Reload(PathBuf),
+}
 
 pub fn run(path: &Path) {
-    let html = render::render_file(path);
+    let path = path.to_path_buf();
+    let html = render::render_file(&path);
     let title = path
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("glance");
 
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+
+    // file watcher on a background thread
+    let watch_path = path.clone();
+    let watch_proxy = proxy.clone();
+    let (watcher_tx, watcher_rx) = mpsc::channel::<PathBuf>();
+    let _watcher = watch::watch_file(&watch_path, watcher_tx)
+        .expect("failed to start file watcher");
+    std::thread::spawn(move || {
+        for changed in watcher_rx {
+            let _ = watch_proxy.send_event(UserEvent::Reload(changed));
+        }
+    });
+
     let window = WindowBuilder::new()
         .with_title(&format!("{} — glance", title))
         .with_inner_size(tao::dpi::LogicalSize::new(900.0, 700.0))
         .build(&event_loop)
         .expect("failed to create window");
 
-    // allow cmd+w to close
-    let opened = Arc::new(AtomicBool::new(true));
-
     #[cfg(target_os = "linux")]
-    let _webview = {
+    let webview = {
         use tao::platform::unix::WindowExtUnix;
         WebViewBuilder::new()
             .with_html(&html)
@@ -35,7 +52,7 @@ pub fn run(path: &Path) {
     };
 
     #[cfg(not(target_os = "linux"))]
-    let _webview = WebViewBuilder::new()
+    let webview = WebViewBuilder::new()
         .with_html(&html)
         .build(&window)
         .expect("failed to create webview");
@@ -44,6 +61,11 @@ pub fn run(path: &Path) {
         *control_flow = ControlFlow::Wait;
 
         match event {
+            tao::event::Event::UserEvent(UserEvent::Reload(changed)) => {
+                let new_html = render::render_file(&changed);
+                let _ = webview.load_html(&new_html);
+            }
+
             tao::event::Event::WindowEvent {
                 event: tao::event::WindowEvent::CloseRequested,
                 ..
@@ -52,10 +74,7 @@ pub fn run(path: &Path) {
             tao::event::Event::WindowEvent {
                 event: tao::event::WindowEvent::Destroyed,
                 ..
-            } => {
-                opened.store(false, Ordering::SeqCst);
-                *control_flow = ControlFlow::Exit;
-            }
+            } => *control_flow = ControlFlow::Exit,
 
             _ => {}
         }
