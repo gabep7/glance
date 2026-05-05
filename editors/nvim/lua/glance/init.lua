@@ -10,32 +10,18 @@ local state = {
   term_buf = nil,
   term_win = nil,
   source_win = nil,
-  autocmds = {},
+  source_buf = nil,
+  attached = false,
 }
 
-local function cleanup()
-  for _, id in ipairs(state.autocmds) do
-    pcall(vim.api.nvim_del_autocmd, id)
-  end
-  state.autocmds = {}
-  if state.tmpfile then
-    os.remove(state.tmpfile)
-    state.tmpfile = nil
-  end
-end
-
 local function write_to_tmp()
-  if not state.tmpfile or not state.source_win then
+  if not state.tmpfile or not state.source_buf then
     return
   end
-  if not vim.api.nvim_win_is_valid(state.source_win) then
+  if not vim.api.nvim_buf_is_valid(state.source_buf) then
     return
   end
-  local buf = vim.api.nvim_win_get_buf(state.source_win)
-  if not vim.api.nvim_buf_is_valid(buf) then
-    return
-  end
-  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local lines = vim.api.nvim_buf_get_lines(state.source_buf, 0, -1, false)
   local f = io.open(state.tmpfile, "w")
   if f then
     f:write(table.concat(lines, "\n"))
@@ -59,6 +45,7 @@ function M.open()
 
   M.stop()
   state.source_win = vim.api.nvim_get_current_win()
+  state.source_buf = buf
 
   -- create temp file and write initial content
   state.tmpfile = os.tmpname() .. ".md"
@@ -79,15 +66,30 @@ function M.open()
   -- go back to source window
   vim.api.nvim_set_current_win(state.source_win)
 
-  -- live update on every text change (no debounce)
-  state.autocmds[1] = vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-    buffer = buf,
-    callback = write_to_tmp,
+  -- attach to buffer changes — fires on every keystroke, 50ms batch
+  local timer = nil
+  vim.api.nvim_buf_attach(buf, false, {
+    on_bytes = function()
+      if timer then
+        vim.fn.timer_stop(timer)
+      end
+      timer = vim.fn.timer_start(50, function()
+        timer = nil
+        write_to_tmp()
+      end)
+    end,
+    on_detach = function()
+      if timer then
+        vim.fn.timer_stop(timer)
+        timer = nil
+      end
+    end,
   })
 
   -- cleanup when source buffer closes
-  state.autocmds[2] = vim.api.nvim_create_autocmd("BufUnload", {
+  vim.api.nvim_create_autocmd("BufUnload", {
     buffer = buf,
+    once = true,
     callback = function()
       M.stop()
     end,
@@ -95,16 +97,20 @@ function M.open()
 end
 
 function M.stop()
-  cleanup()
   if state.term_win and vim.api.nvim_win_is_valid(state.term_win) then
     pcall(vim.api.nvim_win_close, state.term_win, true)
   end
   if state.term_buf and vim.api.nvim_buf_is_valid(state.term_buf) then
     pcall(vim.api.nvim_buf_delete, state.term_buf, { force = true })
   end
+  if state.tmpfile then
+    os.remove(state.tmpfile)
+    state.tmpfile = nil
+  end
   state.term_buf = nil
   state.term_win = nil
   state.source_win = nil
+  state.source_buf = nil
 end
 
 function M.setup(opts)
