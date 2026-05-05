@@ -1,15 +1,10 @@
--- glance.lua — nvim integration for glance markdown preview
--- config:
---   require("glance").setup({ mode = "split" })  -- or "window"
---   mode = "split"  — preview in a vertical terminal split (live, no save needed)
---   mode = "window" — preview in a separate OS window
+-- glance.lua — nvim split preview for markdown
 
 local M = {
   mode = "split",
   binary = vim.fn.expand("~/Projects/Personal/glance/target/release/glance"),
 }
 
--- internal state
 local state = {
   tmpfile = nil,
   term_buf = nil,
@@ -24,7 +19,7 @@ local function cleanup()
   end
   state.autocmds = {}
   if state.tmpfile then
-    vim.fn.delete(state.tmpfile)
+    os.remove(state.tmpfile)
     state.tmpfile = nil
   end
 end
@@ -33,18 +28,25 @@ local function write_to_tmp()
   if not state.tmpfile or not state.source_buf then
     return
   end
+  if not vim.api.nvim_buf_is_valid(state.source_buf) then
+    return
+  end
   local lines = vim.api.nvim_buf_get_lines(state.source_buf, 0, -1, false)
-  vim.fn.writefile(lines, state.tmpfile)
+  local f = io.open(state.tmpfile, "w")
+  if f then
+    f:write(table.concat(lines, "\n"))
+    f:close()
+  end
 end
 
--- debounced update: fires 150ms after last text change
-local update_timer = nil
+-- debounce: 100ms after last change
+local timer = nil
 local function schedule_update()
-  if update_timer then
-    vim.fn.timer_stop(update_timer)
+  if timer then
+    vim.fn.timer_stop(timer)
   end
-  update_timer = vim.fn.timer_start(150, function()
-    update_timer = nil
+  timer = vim.fn.timer_start(100, function()
+    timer = nil
     pcall(write_to_tmp)
   end)
 end
@@ -63,36 +65,41 @@ function M.open()
     return
   end
 
-  -- cleanup previous preview if any
-  cleanup()
+  -- close existing preview if any
+  M.stop()
 
   state.source_buf = buf
+  state.tmpfile = os.tmpname() .. ".md"
 
-  if M.mode == "window" then
-    vim.fn.jobstart({ M.binary, path }, { detach = true })
-    vim.notify("glance: opened " .. vim.fn.fnamemodify(path, ":t"), vim.log.levels.INFO)
-    return
-  end
-
-  -- split mode: write to temp file, start tui watch in terminal split
-  state.tmpfile = vim.fn.tempname() .. ".md"
+  -- initial write
   write_to_tmp()
 
-  -- create vertical split
+  -- create split on the right
   vim.cmd("rightbelow vsplit")
   state.term_win = vim.api.nvim_get_current_win()
 
-  -- open terminal with glance --tui --watch
+  -- open terminal
   vim.fn.termopen({ M.binary, "--tui", "--watch", state.tmpfile })
   state.term_buf = vim.api.nvim_get_current_buf()
 
-  -- go back to source window
+  -- suppress terminal buffer noise
+  local tb = state.term_buf
+  vim.bo[tb].buflisted = false
+  vim.bo[tb].bufhidden = "wipe"
+  vim.bo[tb].modifiable = false
+  vim.wo[state.term_win].number = false
+  vim.wo[state.term_win].signcolumn = "no"
+
+  -- name the buffer
+  vim.api.nvim_buf_set_name(tb, "glance://" .. vim.fn.fnamemodify(path, ":t"))
+
+  -- go back to source window (left side)
   vim.cmd("wincmd p")
 
-  -- set terminal buffer options
-  vim.bo[state.term_buf].buflisted = false
+  -- reset cursor to trigger first update
+  schedule_update()
 
-  -- update temp file on text changes
+  -- live update on text changes
   state.autocmds[1] = vim.api.nvim_create_autocmd("TextChanged", {
     buffer = buf,
     callback = schedule_update,
@@ -102,18 +109,13 @@ function M.open()
     callback = schedule_update,
   })
 
-  -- cleanup when source buffer is closed
+  -- cleanup when source buffer closes
   state.autocmds[3] = vim.api.nvim_create_autocmd("BufUnload", {
     buffer = buf,
     callback = function()
-      cleanup()
-      if state.term_buf and vim.api.nvim_buf_is_valid(state.term_buf) then
-        vim.api.nvim_buf_delete(state.term_buf, { force = true })
-      end
+      M.stop()
     end,
   })
-
-  vim.notify("glance: previewing " .. vim.fn.fnamemodify(path, ":t"), vim.log.levels.INFO)
 end
 
 function M.stop()
@@ -123,7 +125,6 @@ function M.stop()
   end
   state.term_buf = nil
   state.term_win = nil
-  vim.notify("glance: stopped", vim.log.levels.INFO)
 end
 
 function M.setup(opts)
