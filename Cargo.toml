@@ -1,12 +1,11 @@
 [package]
 name = "glance-md"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Markdown preview that scrolls with your cursor. Terminal-first, editor-optional."
 license = "MIT"
-license-file = "LICENSE"
 readme = "README.md"
-repository = "https://github.com/gabriele/glance"
+repository = "https://github.com/gabep7/glance"
 keywords = ["markdown", "preview", "terminal", "neovim", "cli"]
 categories = ["command-line-utilities", "development-tools", "text-processing"]
 

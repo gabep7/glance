@@ -1,8 +1,8 @@
 # demo tape for vhs (charmbracelet/vhs)
 # install: brew install vhs
 # run:     vhs demo.tape
-# note:    nested nvim :terminal might not work in vhs.
-#          if it fails, use the manual QuickTime + ffmpeg approach (gif.sh).
+# note:    keybinds (<leader>*) don't work in vhs since it types literal chars.
+#          :Glance and :GlanceStop work fine.
 
 Output demo.gif
 
@@ -41,13 +41,14 @@ Enter
 Type "echo '```' >> /tmp/demo.md"
 Enter
 Sleep 500ms
+Ctrl+L
 
 Show
 Type `nvim /tmp/demo.md`
 Enter
 Sleep 1s
 
-# open glance
+# open glance preview
 Type `:Glance`
 Enter
 Sleep 2s
@@ -61,20 +62,17 @@ Type `o## edited live`
 Escape
 Sleep 1s
 
-# freeze scroll sync
-Type `<leader>gs`
-Sleep 1s
-
-# jump to preview
-Type `<leader>gf`
+# jump to preview window
+Type `<C-w>l`
 Sleep 1s
 
 # back to source
-Type `<leader>gf`
+Type `<C-w>h`
 Sleep 1s
 
-# close preview
-Type `<leader>gp`
+# close preview with command
+Type `:GlanceStop`
+Enter
 Sleep 1s
 
 Type `:q!`

@@ -2,7 +2,7 @@
 
 markdown preview that scrolls with your cursor. terminal-first, editor-optional.
 
-## what
+## overview
 
 - `glance file.md` opens a native webview window with rendered markdown
 - `glance --tui file.md` renders in the terminal instead
