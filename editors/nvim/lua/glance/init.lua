@@ -25,7 +25,6 @@ end
 
 local M = {
   mode = "split",
-  binary = find_binary(),
 }
 
 local state = {
@@ -117,7 +116,8 @@ function M.sync_toggle()
 end
 
 function M.open()
-  if not M.binary then
+  local binary = M.binary or find_binary()
+  if not binary then
     vim.notify("glance: binary not found. run :lua require('glance').setup({ binary = '/path/to/glance' })", vim.log.levels.ERROR)
     return
   end
@@ -146,7 +146,7 @@ function M.open()
 
   -- create split on the right and open terminal
   vim.cmd("rightbelow vnew")
-  vim.cmd("terminal " .. M.binary
+  vim.cmd("terminal " .. binary
     .. " --tui --watch"
     .. " --cursor-file " .. state.cursor_file
     .. " " .. state.tmpfile)
