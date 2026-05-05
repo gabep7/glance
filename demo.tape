@@ -2,7 +2,7 @@
 # install: brew install vhs
 # run:     vhs demo.tape
 # note:    nested nvim :terminal might not work in vhs.
-#          if it fails, use the manual QuickTime + ffmpeg approach below.
+#          if it fails, use the manual QuickTime + ffmpeg approach (gif.sh).
 
 Output demo.gif
 
@@ -13,46 +13,71 @@ Set Shell "zsh"
 
 Hide
 
-Type "cd /tmp && echo '# glance demo' > demo.md && printf '\n## features\n\n- live preview\n- scroll sync\n- keyboard driven\n\n```rust\nfn main() {\n    println!(\"hello\");\n}\n```\n' >> demo.md"
+# create demo markdown file
+Type `echo "# glance demo" > /tmp/demo.md`
+Enter
+Type `echo "" >> /tmp/demo.md`
+Enter
+Type `echo "## features" >> /tmp/demo.md`
+Enter
+Type `echo "" >> /tmp/demo.md`
+Enter
+Type `echo "- live preview" >> /tmp/demo.md`
+Enter
+Type `echo "- scroll sync" >> /tmp/demo.md`
+Enter
+Type `echo "- keyboard driven" >> /tmp/demo.md`
+Enter
+Type `echo "" >> /tmp/demo.md`
+Enter
+Type "echo '```rust' >> /tmp/demo.md"
+Enter
+Type `echo 'fn main() {' >> /tmp/demo.md`
+Enter
+Type `echo '    println!("hello");' >> /tmp/demo.md`
+Enter
+Type `echo '}' >> /tmp/demo.md`
+Enter
+Type "echo '```' >> /tmp/demo.md"
 Enter
 Sleep 500ms
 
 Show
-Type "nvim demo.md"
+Type `nvim /tmp/demo.md`
 Enter
 Sleep 1s
 
 # open glance
-Type ":Glance"
+Type `:Glance`
 Enter
 Sleep 2s
 
 # scroll down, preview follows
-Type "jjjjjjjjjj"
+Type `jjjjjjjjjj`
 Sleep 1s
 
 # edit some text live
-Type "o## edited live"
+Type `o## edited live`
 Escape
 Sleep 1s
 
 # freeze scroll sync
-Type "<leader>gs"
+Type `<leader>gs`
 Sleep 1s
 
 # jump to preview
-Type "<leader>gf"
+Type `<leader>gf`
 Sleep 1s
 
 # back to source
-Type "<leader>gf"
+Type `<leader>gf`
 Sleep 1s
 
 # close preview
-Type "<leader>gp"
+Type `<leader>gp`
 Sleep 1s
 
-Type ":q!"
+Type `:q!`
 Enter
 Sleep 500ms
 

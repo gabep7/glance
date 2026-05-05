@@ -27,7 +27,7 @@ neovim (lazy.nvim):
 standalone:
 
 ```bash
-cargo install glance
+cargo install glance-md
 ```
 
 ## usage
@@ -52,6 +52,8 @@ neovim keymaps (set automatically on `*.md`):
 | `<leader>gs` | freeze scroll sync |
 | `:Glance` | open preview |
 | `:GlanceStop` | close preview |
+
+> **Note:** the crate is `glance-md` but the binary is still named `glance`.
 
 ## how it works
 
