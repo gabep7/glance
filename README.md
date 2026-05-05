@@ -4,7 +4,8 @@ markdown preview that scrolls with your cursor. terminal-first, editor-optional.
 
 ## what
 
-- `glance --tui file.md` renders markdown in your terminal
+- `glance file.md` opens a native webview window with rendered markdown
+- `glance --tui file.md` renders in the terminal instead
 - `:Glance` in neovim opens a live side-by-side preview
 - cursor moves in source, preview scrolls to match
 - edits appear in real time, no save needed
