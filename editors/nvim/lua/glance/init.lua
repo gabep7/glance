@@ -127,6 +127,7 @@ function M.stop()
 end
 
 function M.setup(opts)
+  opts = opts or {}
   M.mode = opts.mode or M.mode
   if opts.binary then
     M.binary = opts.binary
