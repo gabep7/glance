@@ -89,9 +89,7 @@ function M.open()
   vim.bo[tb].modifiable = false
   vim.wo[state.term_win].number = false
   vim.wo[state.term_win].signcolumn = "no"
-
-  -- name the buffer
-  vim.api.nvim_buf_set_name(tb, "glance://" .. vim.fn.fnamemodify(path, ":t"))
+  vim.wo[state.term_win].statuscolumn = ""
 
   -- go back to source window (left side)
   vim.cmd("wincmd p")
