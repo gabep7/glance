@@ -12,6 +12,8 @@ local state = {
   term_win = nil,
   source_win = nil,
   source_buf = nil,
+  active = false,
+  scroll_sync = true,
 }
 
 local function write_to_tmp()
@@ -30,6 +32,9 @@ local function write_to_tmp()
 end
 
 local function write_cursor_line()
+  if not state.scroll_sync then
+    return
+  end
   if not state.cursor_file or not state.source_win then
     return
   end
@@ -45,10 +50,47 @@ local function write_cursor_line()
   end
 end
 
-
-
 local function on_cursor_moved()
   write_cursor_line()
+end
+
+local function preview_alive()
+  return state.term_win
+    and vim.api.nvim_win_is_valid(state.term_win)
+    and state.term_buf
+    and vim.api.nvim_buf_is_valid(state.term_buf)
+end
+
+function M.toggle()
+  if preview_alive() then
+    M.stop()
+  else
+    M.open()
+  end
+end
+
+function M.focus()
+  if preview_alive() then
+    local cur = vim.api.nvim_get_current_win()
+    if cur == state.term_win then
+      if state.source_win and vim.api.nvim_win_is_valid(state.source_win) then
+        vim.api.nvim_set_current_win(state.source_win)
+      end
+    else
+      vim.api.nvim_set_current_win(state.term_win)
+    end
+  else
+    M.open()
+  end
+end
+
+function M.sync_toggle()
+  state.scroll_sync = not state.scroll_sync
+  local msg = state.scroll_sync and "scroll sync on" or "scroll sync off"
+  vim.notify("glance: " .. msg, vim.log.levels.INFO)
+  if state.scroll_sync then
+    write_cursor_line() -- immediately update to current position
+  end
 end
 
 function M.open()
@@ -106,6 +148,8 @@ function M.open()
     callback = on_cursor_moved,
   })
 
+  state.active = true
+
   -- cleanup when source buffer closes
   vim.api.nvim_create_autocmd("BufUnload", {
     buffer = buf,
@@ -131,6 +175,7 @@ function M.stop()
     os.remove(state.cursor_file)
     state.cursor_file = nil
   end
+  state.active = false
   state.term_buf = nil
   state.term_win = nil
   state.source_win = nil
@@ -151,6 +196,32 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("GlanceStop", function()
     M.stop()
   end, {})
+
+  if opts.keymaps == false then
+    return
+  end
+
+  local km = opts.keymaps or {}
+  local toggle_key = km.toggle or "<leader>gp"
+  local focus_key = km.focus or "<leader>gf"
+  local sync_key = km.sync or "<leader>gs"
+
+  local function buf_map(buf, lhs, rhs, desc)
+    vim.keymap.set("n", lhs, rhs, { buffer = buf, desc = desc, silent = true })
+  end
+
+  vim.api.nvim_create_autocmd("BufEnter", {
+    pattern = "*.md",
+    callback = function(ev)
+      local b = ev.buf
+      if vim.bo[b].filetype ~= "markdown" then
+        return
+      end
+      buf_map(b, toggle_key, function() M.toggle() end, "Glance: toggle preview")
+      buf_map(b, focus_key, function() M.focus() end, "Glance: focus preview")
+      buf_map(b, sync_key, function() M.sync_toggle() end, "Glance: toggle scroll sync")
+    end,
+  })
 end
 
 return M
