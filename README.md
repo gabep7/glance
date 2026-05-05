@@ -27,7 +27,7 @@ neovim (lazy.nvim):
 standalone:
 
 ```bash
-cargo install --git https://github.com/gabep7/glance
+cargo install glance
 ```
 
 ## usage

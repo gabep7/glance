@@ -2,9 +2,13 @@
 name = "glance"
 version = "0.1.0"
 edition = "2024"
-description = "Markdown preview daemon with editor integration"
+description = "Markdown preview that scrolls with your cursor. Terminal-first, editor-optional."
 license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
 repository = "https://github.com/gabriele/glance"
+keywords = ["markdown", "preview", "terminal", "neovim", "cli"]
+categories = ["command-line-utilities", "development-tools", "text-processing"]
 
 [dependencies]
 wry = "0.54"
