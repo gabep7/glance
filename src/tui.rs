@@ -62,7 +62,27 @@ pub fn pipe_mode() {
     }
 }
 
-/// watch a file and re-render on change, clearing the terminal each time
+/// watch a file via polling (not OS events) — bulletproof on all platforms
+pub fn poll_watch(path: &Path) {
+    let path = path.to_path_buf();
+    let mut last_mod = file_modified(&path);
+    render_and_clear(&path);
+
+    loop {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let current = file_modified(&path);
+        if current != last_mod {
+            last_mod = current;
+            render_and_clear(&path);
+        }
+    }
+}
+
+fn file_modified(path: &Path) -> Option<std::time::SystemTime> {
+    std::fs::metadata(path).ok()?.modified().ok()
+}
+
+/// watch a file via notify events (macOS fsevent can be flaky)
 pub fn watch_loop(path: &Path) {
     let path = path.to_path_buf();
     render_and_clear(&path);

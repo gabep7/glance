@@ -6,7 +6,7 @@ local M = {
 }
 
 local state = {
-  job_id = nil,
+  tmpfile = nil,
   term_buf = nil,
   term_win = nil,
   source_win = nil,
@@ -18,13 +18,17 @@ local function cleanup()
     pcall(vim.api.nvim_del_autocmd, id)
   end
   state.autocmds = {}
+  if state.tmpfile then
+    os.remove(state.tmpfile)
+    state.tmpfile = nil
+  end
 end
 
-local function send_content()
-  if not state.job_id or state.job_id <= 0 then
+local function write_to_tmp()
+  if not state.tmpfile or not state.source_win then
     return
   end
-  if not state.source_win then
+  if not vim.api.nvim_win_is_valid(state.source_win) then
     return
   end
   local buf = vim.api.nvim_win_get_buf(state.source_win)
@@ -32,18 +36,14 @@ local function send_content()
     return
   end
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local content = table.concat(lines, "\n")
-  local msg = #content .. "\n" .. content
-  vim.fn.chansend(state.job_id, msg)
+  local f = io.open(state.tmpfile, "w")
+  if f then
+    f:write(table.concat(lines, "\n"))
+    f:close()
+  end
 end
 
 function M.open()
-  -- check binary exists
-  if vim.fn.filereadable(M.binary) == 0 then
-    vim.notify("glance: binary not found at " .. M.binary, vim.log.levels.ERROR)
-    return
-  end
-
   local buf = vim.api.nvim_get_current_buf()
   local path = vim.api.nvim_buf_get_name(buf)
 
@@ -60,25 +60,15 @@ function M.open()
   M.stop()
   state.source_win = vim.api.nvim_get_current_win()
 
-  -- create new empty buffer for terminal
-  state.term_buf = vim.api.nvim_create_buf(false, true)
+  -- create temp file and write initial content
+  state.tmpfile = os.tmpname() .. ".md"
+  write_to_tmp()
 
-  -- open window on the right
-  local width = math.floor(vim.o.columns * 0.45)
-  state.term_win = vim.api.nvim_open_win(state.term_buf, true, {
-    split = "right",
-    width = width,
-  })
-
-  -- start glance in terminal
-  local cmd = M.binary .. " --pipe"
-  local ok, job_id = pcall(vim.fn.termopen, cmd)
-  if not ok or job_id <= 0 then
-    vim.notify("glance: failed to start terminal job", vim.log.levels.ERROR)
-    M.stop()
-    return
-  end
-  state.job_id = job_id
+  -- create split on the right and open terminal
+  vim.cmd("rightbelow vnew")
+  vim.cmd("terminal " .. M.binary .. " --tui --watch " .. state.tmpfile)
+  state.term_win = vim.api.nvim_get_current_win()
+  state.term_buf = vim.api.nvim_get_current_buf()
 
   -- configure terminal window
   vim.bo[state.term_buf].buflisted = false
@@ -89,15 +79,10 @@ function M.open()
   -- go back to source window
   vim.api.nvim_set_current_win(state.source_win)
 
-  -- send initial content after terminal settles
-  vim.fn.timer_start(200, function()
-    send_content()
-  end)
-
-  -- live update on every text change
+  -- live update on every text change (no debounce)
   state.autocmds[1] = vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     buffer = buf,
-    callback = send_content,
+    callback = write_to_tmp,
   })
 
   -- cleanup when source buffer closes
@@ -111,10 +96,6 @@ end
 
 function M.stop()
   cleanup()
-  if state.job_id and state.job_id > 0 then
-    pcall(vim.fn.jobstop, state.job_id)
-    state.job_id = nil
-  end
   if state.term_win and vim.api.nvim_win_is_valid(state.term_win) then
     pcall(vim.api.nvim_win_close, state.term_win, true)
   end

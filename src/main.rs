@@ -59,7 +59,7 @@ fn main() {
                     std::process::exit(1);
                 }
                 if cli.watch {
-                    tui::watch_loop(&path);
+                    tui::poll_watch(&path);
                 } else {
                     tui::render_once(&path);
                 }
