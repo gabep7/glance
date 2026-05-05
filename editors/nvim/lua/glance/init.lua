@@ -9,6 +9,7 @@ local state = {
   tmpfile = nil,
   term_buf = nil,
   source_win = nil,
+  job_id = nil,
   autocmds = {},
 }
 
@@ -39,16 +40,15 @@ local function write_to_tmp()
   end
 end
 
--- debounce: 100ms
-local timer = nil
-local function schedule_update()
-  if timer then
-    vim.fn.timer_stop(timer)
+-- scroll the terminal preview to approximately the source cursor position
+local function scroll_preview()
+  if not state.job_id then
+    return
   end
-  timer = vim.fn.timer_start(100, function()
-    timer = nil
-    pcall(write_to_tmp)
-  end)
+  local cursor_line = vim.api.nvim_win_get_cursor(state.source_win)[1]
+  -- heuristic: 1 markdown line ~= 1 terminal line, scroll to a bit above cursor
+  local target = math.max(1, cursor_line - 3)
+  vim.fn.chansend(state.job_id, string.format("\x1b[H\x1b[%dB", target))
 end
 
 function M.open()
@@ -70,12 +70,12 @@ function M.open()
   state.tmpfile = os.tmpname() .. ".md"
   write_to_tmp()
 
-  -- create new window on the right with empty buffer
+  -- create new window on the right
   vim.cmd("rightbelow vnew")
   local term_win = vim.api.nvim_get_current_win()
 
   -- run glance in terminal
-  vim.fn.termopen({ M.binary, "--tui", "--watch", state.tmpfile })
+  state.job_id = vim.fn.termopen({ M.binary, "--tui", "--watch", state.tmpfile })
   state.term_buf = vim.api.nvim_get_current_buf()
 
   -- configure terminal window
@@ -88,15 +88,27 @@ function M.open()
   -- go back to source window
   vim.api.nvim_set_current_win(state.source_win)
 
-  -- live update
-  state.autocmds[1] = vim.api.nvim_create_autocmd("TextChanged", {
+  -- live update on text changes — no debounce, instant
+  state.autocmds[1] = vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     buffer = buf,
-    callback = schedule_update,
+    callback = function()
+      write_to_tmp()
+      -- scroll after render completes (~30ms for glance to re-render)
+      vim.fn.timer_start(30, function()
+        scroll_preview()
+      end)
+    end,
   })
-  state.autocmds[2] = vim.api.nvim_create_autocmd("TextChangedI", {
+
+  -- track cursor for scroll sync
+  state.autocmds[2] = vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     buffer = buf,
-    callback = schedule_update,
+    callback = function()
+      scroll_preview()
+    end,
   })
+
+  -- cleanup when source buffer closes
   state.autocmds[3] = vim.api.nvim_create_autocmd("BufUnload", {
     buffer = buf,
     callback = function()
@@ -112,6 +124,7 @@ function M.stop()
   end
   state.term_buf = nil
   state.source_win = nil
+  state.job_id = nil
 end
 
 function M.setup(opts)
