@@ -1,34 +1,34 @@
 use serde::{Deserialize, Serialize};
 
-/// Messages sent from editor to daemon.
+/// messages sent from editor to daemon
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum EditorCommand {
-    /// Open a new file in the preview.
+    /// open a new file in the preview
     #[serde(rename = "open")]
     Open { path: String },
-    /// Update cursor position (line, column).
+    /// update cursor position (line, column)
     #[serde(rename = "cursor")]
     Cursor { line: usize, col: usize },
-    /// Update scroll position.
+    /// update scroll position
     #[serde(rename = "scroll")]
     Scroll { top_line: usize },
-    /// Close a preview.
+    /// close a preview
     #[serde(rename = "close")]
     Close,
 }
 
-/// Messages sent from daemon back to editor.
+/// messages sent from daemon back to editor
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "op")]
 pub enum DaemonResponse {
-    /// Preview is ready.
+    /// preview window is ready
     #[serde(rename = "ready")]
     Ready { id: String },
-    /// User clicked in preview, editor should navigate.
+    /// user clicked in preview, editor should navigate to line
     #[serde(rename = "navigate")]
     Navigate { line: usize },
-    /// Error response.
+    /// something went wrong
     #[serde(rename = "error")]
     Error { message: String },
 }

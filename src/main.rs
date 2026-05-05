@@ -5,14 +5,14 @@ mod ipc;
 mod render;
 mod watch;
 
-/// A markdown preview daemon with editor integration.
+/// markdown preview daemon with editor integration
 #[derive(Parser)]
 #[command(name = "glance", version, about)]
 struct Cli {
-    /// Markdown file to preview
+    /// markdown file to preview
     file: Option<String>,
 
-    /// Send command to running daemon instead of starting a new one
+    /// send command to running daemon instead of starting a new one
     #[arg(short, long)]
     daemon: bool,
 }

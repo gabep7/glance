@@ -22,7 +22,7 @@ pub fn run(path: &Path) {
         .build(&event_loop)
         .expect("failed to create window");
 
-    // Allow cmd+w to close
+    // allow cmd+w to close
     let opened = Arc::new(AtomicBool::new(true));
 
     #[cfg(target_os = "linux")]

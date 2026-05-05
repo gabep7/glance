@@ -3,8 +3,7 @@ use std::sync::mpsc::Sender;
 
 use notify::{Event, EventKind, RecursiveMode, Watcher};
 
-/// Starts watching a file for changes. Sends the modified path on the channel
-/// when the file changes.
+/// start watching a file for changes, sends the path on modify
 pub fn watch_file(
     path: &Path,
     tx: Sender<std::path::PathBuf>,
