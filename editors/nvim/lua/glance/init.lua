@@ -66,23 +66,10 @@ function M.open()
   -- go back to source window
   vim.api.nvim_set_current_win(state.source_win)
 
-  -- attach to buffer changes — fires on every keystroke, 50ms batch
-  local timer = nil
+  -- attach to buffer changes — on_lines fires on every text change
   vim.api.nvim_buf_attach(buf, false, {
-    on_bytes = function()
-      if timer then
-        vim.fn.timer_stop(timer)
-      end
-      timer = vim.fn.timer_start(50, function()
-        timer = nil
-        write_to_tmp()
-      end)
-    end,
-    on_detach = function()
-      if timer then
-        vim.fn.timer_stop(timer)
-        timer = nil
-      end
+    on_lines = function(...)
+      write_to_tmp()
     end,
   })
 

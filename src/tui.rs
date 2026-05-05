@@ -12,6 +12,15 @@ fn render_ansi(markdown: &str) -> String {
 
 fn clear_and_write(ansi: &str) {
     let mut stdout = io::stdout().lock();
+    // home cursor, output content (overwrites previous, no screen clear)
+    let _ = stdout.write_all(b"\x1b[H");
+    let _ = stdout.write_all(ansi.as_bytes());
+    let _ = stdout.flush();
+}
+
+fn initial_render(ansi: &str) {
+    let mut stdout = io::stdout().lock();
+    // full screen clear only on first render
     let _ = stdout.write_all(b"\x1b[2J\x1b[H");
     let _ = stdout.write_all(ansi.as_bytes());
     let _ = stdout.flush();
@@ -66,14 +75,19 @@ pub fn pipe_mode() {
 pub fn poll_watch(path: &Path) {
     let path = path.to_path_buf();
     let mut last_mod = file_modified(&path);
-    render_and_clear(&path);
+
+    let md = fs::read_to_string(&path).unwrap_or_default();
+    let ansi = render_ansi(&md);
+    initial_render(&ansi);
 
     loop {
         std::thread::sleep(std::time::Duration::from_millis(100));
         let current = file_modified(&path);
         if current != last_mod {
             last_mod = current;
-            render_and_clear(&path);
+            let md = fs::read_to_string(&path).unwrap_or_default();
+            let ansi = render_ansi(&md);
+            clear_and_write(&ansi);
         }
     }
 }
@@ -85,18 +99,22 @@ fn file_modified(path: &Path) -> Option<std::time::SystemTime> {
 /// watch a file via notify events (macOS fsevent can be flaky)
 pub fn watch_loop(path: &Path) {
     let path = path.to_path_buf();
-    render_and_clear(&path);
+    render_and_clear(&path, true);
 
     let (tx, rx) = mpsc::channel::<PathBuf>();
     let _watcher = watch::watch_file(&path, tx).expect("failed to watch file");
 
     for _ in rx {
-        render_and_clear(&path);
+        render_and_clear(&path, false);
     }
 }
 
-fn render_and_clear(path: &Path) {
-    let md = fs::read_to_string(path).unwrap_or_else(|e| format!("error: {e}"));
+fn render_and_clear(path: &Path, initial: bool) {
+    let md = fs::read_to_string(path).unwrap_or_default();
     let ansi = render_ansi(&md);
-    clear_and_write(&ansi);
+    if initial {
+        initial_render(&ansi);
+    } else {
+        clear_and_write(&ansi);
+    }
 }
