@@ -1,8 +1,6 @@
 # demo tape for vhs (charmbracelet/vhs)
 # install: brew install vhs
 # run:     vhs demo.tape
-# note:    keybinds (<leader>*) don't work in vhs since it types literal chars.
-#          :Glance and :GlanceStop work fine.
 
 Output demo.gif
 
@@ -13,42 +11,44 @@ Set Shell "zsh"
 
 Hide
 
-# create demo markdown file
-Type `echo "# glance demo" > /tmp/demo.md`
+Type `rm -f /tmp/demo.md /tmp/demo.md.swp /tmp/demo.md.swo`
 Enter
-Type `echo "" >> /tmp/demo.md`
+Sleep 200ms
+
+Type `cd /tmp && echo '# glance demo' > demo.md`
 Enter
-Type `echo "## features" >> /tmp/demo.md`
+Type `echo '' >> demo.md`
 Enter
-Type `echo "" >> /tmp/demo.md`
+Type `echo '## features' >> demo.md`
 Enter
-Type `echo "- live preview" >> /tmp/demo.md`
+Type `echo '' >> demo.md`
 Enter
-Type `echo "- scroll sync" >> /tmp/demo.md`
+Type `echo '- live preview' >> demo.md`
 Enter
-Type `echo "- keyboard driven" >> /tmp/demo.md`
+Type `echo '- scroll sync' >> demo.md`
 Enter
-Type `echo "" >> /tmp/demo.md`
+Type `echo '- keyboard driven' >> demo.md`
 Enter
-Type "echo '```rust' >> /tmp/demo.md"
+Type `echo '' >> demo.md`
 Enter
-Type `echo 'fn main() {' >> /tmp/demo.md`
+Type "echo '```rust' >> demo.md"
 Enter
-Type `echo '    println!("hello");' >> /tmp/demo.md`
+Type `echo 'fn main() {' >> demo.md`
 Enter
-Type `echo '}' >> /tmp/demo.md`
+Type `echo '    println!("hello");' >> demo.md`
 Enter
-Type "echo '```' >> /tmp/demo.md"
+Type `echo '}' >> demo.md`
+Enter
+Type "echo '```' >> demo.md"
 Enter
 Sleep 500ms
-Ctrl+L
 
 Show
-Type `nvim /tmp/demo.md`
+Type `nvim -n demo.md`
 Enter
 Sleep 1s
 
-# open glance preview
+# open glance
 Type `:Glance`
 Enter
 Sleep 2s
@@ -62,17 +62,20 @@ Type `o## edited live`
 Escape
 Sleep 1s
 
-# jump to preview window
-Type `<C-w>l`
+# freeze scroll sync
+Type `<leader>gs`
+Sleep 1s
+
+# jump to preview
+Type `<leader>gf`
 Sleep 1s
 
 # back to source
-Type `<C-w>h`
+Type `<leader>gf`
 Sleep 1s
 
-# close preview with command
-Type `:GlanceStop`
-Enter
+# close preview
+Type `<leader>gp`
 Sleep 1s
 
 Type `:q!`
