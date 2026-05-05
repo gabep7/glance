@@ -8,8 +8,7 @@ local M = {
 local state = {
   tmpfile = nil,
   term_buf = nil,
-  term_win = nil,
-  source_buf = nil,
+  source_win = nil,
   autocmds = {},
 }
 
@@ -25,13 +24,14 @@ local function cleanup()
 end
 
 local function write_to_tmp()
-  if not state.tmpfile or not state.source_buf then
+  if not state.tmpfile then
     return
   end
-  if not vim.api.nvim_buf_is_valid(state.source_buf) then
+  local buf = vim.api.nvim_win_get_buf(state.source_win)
+  if not vim.api.nvim_buf_is_valid(buf) then
     return
   end
-  local lines = vim.api.nvim_buf_get_lines(state.source_buf, 0, -1, false)
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   local f = io.open(state.tmpfile, "w")
   if f then
     f:write(table.concat(lines, "\n"))
@@ -39,7 +39,7 @@ local function write_to_tmp()
   end
 end
 
--- debounce: 100ms after last change
+-- debounce: 100ms
 local timer = nil
 local function schedule_update()
   if timer then
@@ -65,39 +65,30 @@ function M.open()
     return
   end
 
-  -- close existing preview if any
   M.stop()
-
-  state.source_buf = buf
+  state.source_win = vim.api.nvim_get_current_win()
   state.tmpfile = os.tmpname() .. ".md"
-
-  -- initial write
   write_to_tmp()
 
-  -- create split on the right
-  vim.cmd("rightbelow vsplit")
-  state.term_win = vim.api.nvim_get_current_win()
+  -- create new window on the right with empty buffer
+  vim.cmd("rightbelow vnew")
+  local term_win = vim.api.nvim_get_current_win()
 
-  -- open terminal
+  -- run glance in terminal
   vim.fn.termopen({ M.binary, "--tui", "--watch", state.tmpfile })
   state.term_buf = vim.api.nvim_get_current_buf()
 
-  -- suppress terminal buffer noise
+  -- configure terminal window
   local tb = state.term_buf
   vim.bo[tb].buflisted = false
   vim.bo[tb].bufhidden = "wipe"
-  vim.bo[tb].modifiable = false
-  vim.wo[state.term_win].number = false
-  vim.wo[state.term_win].signcolumn = "no"
-  vim.wo[state.term_win].statuscolumn = ""
+  vim.wo[term_win].number = false
+  vim.wo[term_win].signcolumn = "no"
 
-  -- go back to source window (left side)
-  vim.cmd("wincmd p")
+  -- go back to source window
+  vim.api.nvim_set_current_win(state.source_win)
 
-  -- reset cursor to trigger first update
-  schedule_update()
-
-  -- live update on text changes
+  -- live update
   state.autocmds[1] = vim.api.nvim_create_autocmd("TextChanged", {
     buffer = buf,
     callback = schedule_update,
@@ -106,8 +97,6 @@ function M.open()
     buffer = buf,
     callback = schedule_update,
   })
-
-  -- cleanup when source buffer closes
   state.autocmds[3] = vim.api.nvim_create_autocmd("BufUnload", {
     buffer = buf,
     callback = function()
@@ -122,7 +111,7 @@ function M.stop()
     vim.api.nvim_buf_delete(state.term_buf, { force = true })
   end
   state.term_buf = nil
-  state.term_win = nil
+  state.source_win = nil
 end
 
 function M.setup(opts)
