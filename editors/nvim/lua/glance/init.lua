@@ -148,6 +148,17 @@ function M.open()
     callback = on_cursor_moved,
   })
 
+  -- re-render on terminal resize (touches cursor file to trigger poll)
+  local resize_grp = vim.api.nvim_create_augroup("GlanceResize_" .. buf, { clear = true })
+  vim.api.nvim_create_autocmd("VimResized", {
+    group = resize_grp,
+    callback = function()
+      if preview_alive() then
+        write_cursor_line()
+      end
+    end,
+  })
+
   state.active = true
 
   -- cleanup when source buffer closes
@@ -161,6 +172,9 @@ function M.open()
 end
 
 function M.stop()
+  if state.source_buf and vim.api.nvim_buf_is_valid(state.source_buf) then
+    pcall(vim.api.nvim_del_augroup_by_name, "GlanceResize_" .. state.source_buf)
+  end
   if state.term_win and vim.api.nvim_win_is_valid(state.term_win) then
     pcall(vim.api.nvim_win_close, state.term_win, true)
   end
