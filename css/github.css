@@ -1,5 +1,17 @@
 /* github-flavored markdown styles - embedded at build time */
 
+html {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
 .markdown-body {
   box-sizing: border-box;
   min-width: 200px;
@@ -157,6 +169,14 @@
 /* ---- dark mode (at end so it wins cascade) ---- */
 
 @media (prefers-color-scheme: dark) {
+  html {
+    background: #0d1117;
+  }
+
+  body {
+    background: #0d1117;
+  }
+
   .markdown-body {
     color: #e6edf3;
     background: #0d1117;
