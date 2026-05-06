@@ -2,6 +2,10 @@
 
 markdown preview that scrolls with your cursor. terminal-first, editor-optional.
 
+## demo
+
+![glance demo](demo.gif)
+
 ## overview
 
 - `glance file.md` opens a native webview window with rendered markdown
