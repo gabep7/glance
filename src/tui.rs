@@ -104,23 +104,23 @@ fn update_sgr(active: &mut Vec<u8>, params: &str) {
             24 => { active.retain(|&x| x != 4); }
             // fg colors 30-37
             30..=37 => {
-                active.retain(|&x| x < 30 || x > 37);
+                active.retain(|&x| !(30..=37).contains(&x));
                 active.push(n);
             }
-            39 => { active.retain(|&x| x < 30 || x > 37); }
+            39 => { active.retain(|&x| !(30..=37).contains(&x)); }
             // bg colors 40-47
             40..=47 => {
-                active.retain(|&x| x < 40 || x > 47);
+                active.retain(|&x| !(40..=47).contains(&x));
                 active.push(n);
             }
-            49 => { active.retain(|&x| x < 40 || x > 47); }
+            49 => { active.retain(|&x| !(40..=47).contains(&x)); }
             // 90-97 bright fg, 100-107 bright bg
             90..=97 => {
-                active.retain(|&x| x < 90 || x > 97);
+                active.retain(|&x| !(90..=97).contains(&x));
                 active.push(n);
             }
             100..=107 => {
-                active.retain(|&x| x < 100 || x > 107);
+                active.retain(|&x| !(100..=107).contains(&x));
                 active.push(n);
             }
             _ => {} // ignore extended color codes for now
@@ -242,7 +242,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
             changed
         };
 
-        let cursor_changed = cursor_file.as_ref().map_or(false, |cf| {
+        let cursor_changed = cursor_file.as_ref().is_some_and(|cf| {
             let current = file_modified(cf);
             let changed = current != last_cursor_mod;
             if changed {

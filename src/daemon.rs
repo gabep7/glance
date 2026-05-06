@@ -37,7 +37,7 @@ pub fn run(path: &Path) {
     });
 
     let window = WindowBuilder::new()
-        .with_title(&format!("{} — glance", title))
+        .with_title(format!("{} — glance", title))
         .with_inner_size(tao::dpi::LogicalSize::new(900.0, 700.0))
         .build(&event_loop)
         .expect("failed to create window");
@@ -45,6 +45,7 @@ pub fn run(path: &Path) {
     #[cfg(target_os = "linux")]
     let webview = {
         use tao::platform::unix::WindowExtUnix;
+        use wry::WebViewBuilderExtUnix;
         WebViewBuilder::new()
             .with_html(&html)
             .build_gtk(window.gtk_window())
