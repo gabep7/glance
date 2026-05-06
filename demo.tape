@@ -11,40 +11,50 @@ Set Shell "zsh"
 
 Hide
 
-Type `rm -f /tmp/demo.md /tmp/demo.md.swp /tmp/demo.md.swo`
+Type `cat > /tmp/demo.md <<'GLANCEDEMO'`
 Enter
-Sleep 200ms
-
-Type `cd /tmp && echo '# glance demo' > demo.md`
+Type `# glance`
 Enter
-Type `echo '' >> demo.md`
+Type ``
 Enter
-Type `echo '## features' >> demo.md`
+Type `> markdown preview that scrolls with your cursor`
 Enter
-Type `echo '' >> demo.md`
+Type ``
 Enter
-Type `echo '- live preview' >> demo.md`
+Type `## features`
 Enter
-Type `echo '- scroll sync' >> demo.md`
+Type ``
 Enter
-Type `echo '- keyboard driven' >> demo.md`
+Type `- live preview`
 Enter
-Type `echo '' >> demo.md`
+Type `- scroll sync`
 Enter
-Type "echo '```rust' >> demo.md"
+Type `- real-time editing`
 Enter
-Type `echo 'fn main() {' >> demo.md`
+Type ``
 Enter
-Type `echo '    println!("hello");' >> demo.md`
+Type `## install`
 Enter
-Type `echo '}' >> demo.md`
+Type ``
 Enter
-Type "echo '```' >> demo.md"
+Type "```bash"
+Enter
+Type `cargo install glance-md`
+Enter
+Type "```"
+Enter
+Type ``
+Enter
+Type `GLANCEDEMO`
 Enter
 Sleep 500ms
 
+Type `clear`
+Enter
+Sleep 100ms
+
 Show
-Type `nvim -n demo.md`
+Type `nvim -n /tmp/demo.md`
 Enter
 Sleep 1s
 
@@ -53,29 +63,20 @@ Type `:Glance`
 Enter
 Sleep 2s
 
-# scroll down, preview follows
-Type `jjjjjjjjjj`
-Sleep 1s
+# scroll down a bit
+Type `jjjjj`
+Sleep 500ms
 
-# edit some text live
-Type `o## edited live`
+# go back up to features section and edit
+Type `kkkkk`
+Sleep 300ms
+Type `o- terminal first`
 Escape
-Sleep 1s
-
-# freeze scroll sync
-Type `<leader>gs`
-Sleep 1s
-
-# jump to preview
-Type `<leader>gf`
-Sleep 1s
-
-# back to source
-Type `<leader>gf`
-Sleep 1s
+Sleep 500ms
 
 # close preview
-Type `<leader>gp`
+Type `:GlanceStop`
+Enter
 Sleep 1s
 
 Type `:q!`
