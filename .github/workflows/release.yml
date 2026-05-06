@@ -25,6 +25,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libglib2.0-dev
       - run: cargo build --release --target ${{ matrix.target }}
       - run: mv target/${{ matrix.target }}/release/glance ${{ matrix.artifact }}
       - uses: actions/upload-artifact@v4
