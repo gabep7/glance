@@ -71,21 +71,6 @@ neovim opens a `:terminal` split running `glance --tui --watch` against a temp f
 
 the preview viewport is proportional -- cursor at 30% through the source shows 30% through the rendered output. ANSI SGR state is tracked so sliced lines don't break formatting. terminal height comes from `ioctl(TIOCGWINSZ)`, not `$LINES`.
 
-## vs alternatives
-
-| feature | glance | glow | markdown-preview.nvim | render-markdown.nvim |
-|---------|--------|------|-----------------------|----------------------|
-| scroll sync with cursor | yes | no | no | no |
-| terminal preview | yes | yes | no | yes (inline) |
-| webview preview | yes | no | yes | no |
-| live edit preview | yes | no | yes | yes |
-| one binary, no runtime | yes | yes | no (needs node) | no (needs nvim) |
-| side-by-side split | yes | no | yes | no |
-
 ## why
 
 existing markdown previewers either need a browser, a node runtime, a headless server, or don't follow your cursor. this is one binary, no dependencies at runtime, and scrolls with you.
-
-## editors
-
-nvim is complete. helix and zed integration planned.
