@@ -17,7 +17,7 @@ Type `# glance`
 Enter
 Type ``
 Enter
-Type `> markdown preview that scrolls with your cursor`
+Type `> live markdown previewer`
 Enter
 Type ``
 Enter
@@ -25,11 +25,11 @@ Type `## features`
 Enter
 Type ``
 Enter
-Type `- live preview`
+Type `- **live preview** — renders as you type`
 Enter
-Type `- scroll sync`
+Type `- **scroll sync** — preview follows your cursor`
 Enter
-Type `- real-time editing`
+Type `- *terminal-first*, with an optional webview window`
 Enter
 Type ``
 Enter
@@ -42,6 +42,24 @@ Enter
 Type `cargo install glance-md`
 Enter
 Type "```"
+Enter
+Type ``
+Enter
+Type `## usage`
+Enter
+Type ``
+Enter
+Type `| command | does |`
+Enter
+Type `| --- | --- |`
+Enter
+Type "| `glance file.md` | open webview |"
+Enter
+Type "| `glance --tui file.md` | terminal preview |"
+Enter
+Type "| `glance --tui --watch file.md` | watch for changes |"
+Enter
+Type "| `:Glance` | neovim split preview |"
 Enter
 Type ``
 Enter
@@ -70,7 +88,7 @@ Sleep 500ms
 # go back up to features section and edit
 Type `kkkkk`
 Sleep 300ms
-Type `o- terminal first`
+Type `o- ~~bugs~~ none`
 Escape
 Sleep 500ms
 
