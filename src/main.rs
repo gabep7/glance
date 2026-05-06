@@ -1,7 +1,6 @@
 use clap::Parser;
 
 mod daemon;
-mod ipc;
 mod render;
 mod tui;
 mod watch;
@@ -33,9 +32,6 @@ struct Cli {
     #[arg(long)]
     cursor_file: Option<String>,
 
-    /// send command to running daemon instead of starting a new one
-    #[arg(short, long)]
-    daemon: bool,
 }
 
 fn main() {

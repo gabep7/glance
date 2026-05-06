@@ -1,9 +1,7 @@
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
 
-use crate::watch;
 
 fn render_ansi(markdown: &str) -> String {
     let skin = termimad::MadSkin::default();
@@ -272,25 +270,4 @@ fn file_modified(path: &Path) -> Option<std::time::SystemTime> {
     std::fs::metadata(path).ok()?.modified().ok()
 }
 
-/// watch a file via notify events (macOS fsevent can be flaky)
-pub fn watch_loop(path: &Path) {
-    let path = path.to_path_buf();
-    render_and_clear(&path, true);
 
-    let (tx, rx) = mpsc::channel::<PathBuf>();
-    let _watcher = watch::watch_file(&path, tx).expect("failed to watch file");
-
-    for _ in rx {
-        render_and_clear(&path, false);
-    }
-}
-
-fn render_and_clear(path: &Path, initial: bool) {
-    let md = fs::read_to_string(path).unwrap_or_default();
-    let ansi = render_ansi(&md);
-    if initial {
-        initial_render(&ansi);
-    } else {
-        clear_and_write(&ansi);
-    }
-}

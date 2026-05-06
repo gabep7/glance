@@ -21,6 +21,9 @@ clap = { version = "4", features = ["derive"] }
 termimad = "0.31"
 libc = "0.2"
 
+[profile.dev]
+opt-level = 1
+
 [profile.release]
 opt-level = "z"
 lto = true
