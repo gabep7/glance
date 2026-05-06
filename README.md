@@ -2,8 +2,6 @@
 
 markdown preview that scrolls with your cursor. terminal-first, editor-optional.
 
-## demo
-
 ![glance demo](demo.gif)
 
 ## overview
@@ -16,7 +14,21 @@ markdown preview that scrolls with your cursor. terminal-first, editor-optional.
 
 ## install
 
-neovim (lazy.nvim):
+**standalone** (prebuilt binaries on [releases](https://github.com/gabep7/glance/releases)):
+
+```bash
+# macOS
+brew install gabep7/tap/glance
+
+# or download from releases
+curl -L https://github.com/gabep7/glance/releases/latest/download/glance-macos-arm64 -o /usr/local/bin/glance
+chmod +x /usr/local/bin/glance
+
+# cargo
+cargo install glance-md
+```
+
+**neovim** (lazy.nvim):
 
 ```lua
 {
@@ -26,12 +38,6 @@ neovim (lazy.nvim):
     require("glance").setup()
   end,
 }
-```
-
-standalone:
-
-```bash
-cargo install glance-md
 ```
 
 ## usage
@@ -64,6 +70,17 @@ neovim keymaps (set automatically on `*.md`):
 neovim opens a `:terminal` split running `glance --tui --watch` against a temp file. edits and cursor position are written to temp files. a 30ms rust poll loop picks up changes and re-renders ANSI to the terminal. no daemon, no socket, no config.
 
 the preview viewport is proportional -- cursor at 30% through the source shows 30% through the rendered output. ANSI SGR state is tracked so sliced lines don't break formatting. terminal height comes from `ioctl(TIOCGWINSZ)`, not `$LINES`.
+
+## vs alternatives
+
+| feature | glance | glow | markdown-preview.nvim | render-markdown.nvim |
+|---------|--------|------|-----------------------|----------------------|
+| scroll sync with cursor | yes | no | no | no |
+| terminal preview | yes | yes | no | yes (inline) |
+| webview preview | yes | no | yes | no |
+| live edit preview | yes | no | yes | yes |
+| one binary, no runtime | yes | yes | no (needs node) | no (needs nvim) |
+| side-by-side split | yes | no | yes | no |
 
 ## why
 
