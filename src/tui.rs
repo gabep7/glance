@@ -94,13 +94,13 @@ fn update_sgr(active: &mut Vec<u8>, params: &str) {
         match n {
             0 => { active.clear(); active.push(0); }
             // bold/normal
-            1 => { if !active.contains(&1) { active.push(1); } }
+            1 if !active.contains(&1) => { active.push(1); }
             22 => { active.retain(|&x| x != 1); }
             // italic
-            3 => { if !active.contains(&3) { active.push(3); } }
+            3 if !active.contains(&3) => { active.push(3); }
             23 => { active.retain(|&x| x != 3); }
             // underline
-            4 => { if !active.contains(&4) { active.push(4); } }
+            4 if !active.contains(&4) => { active.push(4); }
             24 => { active.retain(|&x| x != 4); }
             // fg colors 30-37
             30..=37 => {
