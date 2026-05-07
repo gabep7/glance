@@ -3,7 +3,9 @@ use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 
 fn render_ansi(markdown: &str) -> String {
-    let skin = termimad::MadSkin::default();
+    use std::sync::OnceLock;
+    static SKIN: OnceLock<termimad::MadSkin> = OnceLock::new();
+    let skin = SKIN.get_or_init(termimad::MadSkin::default);
     skin.term_text(markdown).to_string()
 }
 
@@ -24,17 +26,21 @@ fn initial_render(ansi: &str) {
 /// get terminal height via ioctl, fall back to LINES env var, default 24
 fn term_height() -> usize {
     use std::os::fd::AsRawFd;
-    let fd = io::stdout().as_raw_fd();
-    unsafe {
-        let mut ws: libc::winsize = std::mem::zeroed();
-        if libc::ioctl(fd, libc::TIOCGWINSZ, &mut ws) == 0 && ws.ws_row > 0 {
-            return ws.ws_row as usize;
+    use std::sync::OnceLock;
+    static HEIGHT: OnceLock<usize> = OnceLock::new();
+    *HEIGHT.get_or_init(|| {
+        let fd = io::stdout().as_raw_fd();
+        unsafe {
+            let mut ws: libc::winsize = std::mem::zeroed();
+            if libc::ioctl(fd, libc::TIOCGWINSZ, &mut ws) == 0 && ws.ws_row > 0 {
+                return ws.ws_row as usize;
+            }
         }
-    }
-    std::env::var("LINES")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(24)
+        std::env::var("LINES")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(24)
+    })
 }
 
 /// scan ANSI output, return active SGR params at the start of each line
@@ -141,6 +147,11 @@ fn render_viewport_from_cached(
     let cursor_ansi = calc_cursor_ansi(cursor_line, source_lines, total_ansi);
     let start = cursor_ansi.saturating_sub(height / 3);
     let start = start.min(total_ansi.saturating_sub(height));
+
+    // Skip rendering if viewport is empty
+    if start >= total_ansi {
+        return String::new();
+    }
 
     let sgr_prefix = if start < sgr_map.len() { &sgr_map[start] } else { "" };
 
@@ -278,9 +289,9 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
             }
         }
 
-        // fallback: poll cursor file every 16ms (in case watcher misses events)
+        // fallback: poll cursor file every 50ms (in case watcher misses events)
         cursor_poll_count += 1;
-        if cursor_poll_count >= 1 {
+        if cursor_poll_count >= 3 {
             cursor_poll_count = 0;
             if let Some(cp) = &cursor_file_path {
                 let current_cursor = read_cursor_file(Some(cp));
