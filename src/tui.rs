@@ -294,8 +294,11 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                     let current_cursor = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
                     if current_cursor != last_cursor_line {
                         last_cursor_line = current_cursor;
-                        // Only re-render if cursor is outside current viewport
-                        if current_cursor < rhs_viewport_start || current_cursor > rhs_viewport_end {
+                        // Convert source cursor to ANSI line index for comparison
+                        let total_ansi = cached_ansi.lines().count();
+                        let current_ansi = calc_cursor_ansi(current_cursor, source_lines, total_ansi);
+                        // Only re-render if ANSI cursor is outside current viewport
+                        if current_ansi < rhs_viewport_start || current_ansi > rhs_viewport_end {
                             let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                             rhs_viewport_start = ansi.1;
                             rhs_viewport_end = ansi.2;
@@ -316,8 +319,11 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                 let current_cursor = read_cursor_file(Some(cp));
                 if let Some(cur) = current_cursor && cur != last_cursor_line {
                     last_cursor_line = cur;
-                    // Only re-render if cursor is outside current viewport
-                    if cur < rhs_viewport_start || cur > rhs_viewport_end {
+                    // Convert source cursor to ANSI line index for comparison
+                    let total_ansi = cached_ansi.lines().count();
+                    let current_ansi = calc_cursor_ansi(cur, source_lines, total_ansi);
+                    // Only re-render if ANSI cursor is outside current viewport
+                    if current_ansi < rhs_viewport_start || current_ansi > rhs_viewport_end {
                         let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                         rhs_viewport_start = ansi.1;
                         rhs_viewport_end = ansi.2;
