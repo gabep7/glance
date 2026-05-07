@@ -146,8 +146,8 @@ fn render_viewport_from_cached(
     }
 
     let cursor_ansi = calc_cursor_ansi(cursor_line, source_lines, total_ansi);
-    // center cursor in viewport
-    let start = cursor_ansi.saturating_sub(height / 2);
+    // show cursor at 25% from top to minimize unnecessary scrolls
+    let start = cursor_ansi.saturating_sub(height / 4);
     let start = start.min(total_ansi.saturating_sub(height));
 
     // Skip rendering if viewport is empty
@@ -239,8 +239,9 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
     initial_render(&ansi.0);
 
-    // track viewport start on RHS to avoid unnecessary scrolls
+    // track viewport range on RHS to avoid unnecessary scrolls
     let mut rhs_viewport_start = ansi.1;
+    let mut rhs_viewport_end = ansi.2;
 
     // setup file watcher
     let (watch_tx, watch_rx) = mpsc::channel::<notify::Event>();
@@ -290,8 +291,9 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                         last_cursor_line = current_cursor;
                         let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                         // only scroll if viewport start changed
-                        if ansi.1 != rhs_viewport_start {
+                        if ansi.1 != rhs_viewport_start || ansi.2 != rhs_viewport_end {
                             rhs_viewport_start = ansi.1;
+                            rhs_viewport_end = ansi.2;
                             clear_and_write(&ansi.0);
                         }
                     }
@@ -310,8 +312,9 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                     last_cursor_line = cur;
                     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                     // only scroll if viewport start changed
-                    if ansi.1 != rhs_viewport_start {
+                    if ansi.1 != rhs_viewport_start || ansi.2 != rhs_viewport_end {
                         rhs_viewport_start = ansi.1;
+                        rhs_viewport_end = ansi.2;
                         clear_and_write(&ansi.0);
                     }
                 }
