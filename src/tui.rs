@@ -129,29 +129,33 @@ fn calc_cursor_ansi(cursor_line: usize, source_lines: usize, total_ansi: usize) 
     ((ratio * (total_ansi - 1) as f64) as usize).min(total_ansi - 1)
 }
 
-/// render viewport from cached ANSI — no markdown re-parsing
+/// render viewport from cached ANSI — no markdown re-parsing, returns (rendered, viewport_start, viewport_end)
 fn render_viewport_from_cached(
     ansi: &str,
     sgr_map: &[String],
     source_lines: usize,
     cursor_line: usize,
-) -> String {
+) -> (String, usize, usize) {
     let ansi_lines: Vec<&str> = ansi.lines().collect();
     let total_ansi = ansi_lines.len();
     let height = term_height();
 
     if total_ansi <= height {
-        return format!("\x1b[?25l\x1b[2J\x1b[H]{}\x1b[?25h", ansi);
+        let rendered = format!("\x1b[?25l\x1b[2J\x1b[H{}]\x1b[?25h", ansi);
+        return (rendered, 0, total_ansi.saturating_sub(1));
     }
 
     let cursor_ansi = calc_cursor_ansi(cursor_line, source_lines, total_ansi);
-    let start = cursor_ansi.saturating_sub(height / 3);
+    // center cursor in viewport
+    let start = cursor_ansi.saturating_sub(height / 2);
     let start = start.min(total_ansi.saturating_sub(height));
 
     // Skip rendering if viewport is empty
     if start >= total_ansi {
-        return String::new();
+        return (String::new(), start, start);
     }
+
+    let viewport_end = (start + height).min(total_ansi).saturating_sub(1);
 
     let sgr_prefix = if start < sgr_map.len() { &sgr_map[start] } else { "" };
 
@@ -170,7 +174,7 @@ fn render_viewport_from_cached(
     }
     out.push_str("\x1b[J");
     out.push_str("\x1b[?25h");
-    out
+    (out, start, viewport_end)
 }
 
 /// render a file once to stdout
@@ -233,7 +237,10 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
     let mut last_cursor_line: usize = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
 
     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-    initial_render(&ansi);
+    initial_render(&ansi.0);
+
+    // track viewport start on RHS to avoid unnecessary scrolls
+    let mut rhs_viewport_start = ansi.1;
 
     // setup file watcher
     let (watch_tx, watch_rx) = mpsc::channel::<notify::Event>();
@@ -268,7 +275,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                     cached_sgr = sgr_at_line_starts(&cached_ansi);
                     source_lines = std::cmp::max(md.lines().count(), 1);
                     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                    clear_and_write(&ansi);
+                    clear_and_write(&ansi.0);
                 }
                 _ => {}
             }
@@ -282,7 +289,11 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                     if current_cursor != last_cursor_line {
                         last_cursor_line = current_cursor;
                         let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                        clear_and_write(&ansi);
+                        // only scroll if viewport start changed
+                        if ansi.1 != rhs_viewport_start {
+                            rhs_viewport_start = ansi.1;
+                            clear_and_write(&ansi.0);
+                        }
                     }
                 }
                 _ => {}
@@ -298,7 +309,11 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                 if let Some(cur) = current_cursor && cur != last_cursor_line {
                     last_cursor_line = cur;
                     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                    clear_and_write(&ansi);
+                    // only scroll if viewport start changed
+                    if ansi.1 != rhs_viewport_start {
+                        rhs_viewport_start = ansi.1;
+                        clear_and_write(&ansi.0);
+                    }
                 }
             }
         }
