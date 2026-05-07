@@ -212,8 +212,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
     use notify::{EventKind, RecursiveMode, Watcher};
 
     let path = path.to_path_buf();
-    let path = path.to_path_buf();
-    let cursor_file_path = cursor_file.map(PathBuf::from);
+    let cursor_file_path = cursor_file;
 
     // cache ansi + sgr so cursor-only changes skip markdown parsing
     let md = fs::read_to_string(&path).unwrap_or_default();
@@ -237,12 +236,12 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
 
     // setup cursor file watcher if provided
     let (cursor_tx, cursor_rx) = mpsc::channel::<notify::Event>();
-    if let Some(ref cp) = cursor_file_path {
-        if let Ok(mut w) = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+    if let Some(ref cp) = cursor_file_path
+        && let Ok(mut w) = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
             let _ = cursor_tx.send(res.unwrap_or_default());
-        }) {
-            let _ = w.watch(cp, RecursiveMode::NonRecursive);
-        }
+        })
+    {
+        let _ = w.watch(cp, RecursiveMode::NonRecursive);
     }
 
     // poll cursor file every 16ms (in case watcher misses events)
@@ -285,12 +284,10 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
             cursor_poll_count = 0;
             if let Some(cp) = &cursor_file_path {
                 let current_cursor = read_cursor_file(Some(cp));
-                if let Some(cur) = current_cursor {
-                    if cur != last_cursor_line {
-                        last_cursor_line = cur;
-                        let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                        clear_and_write(&ansi);
-                    }
+                if let Some(cur) = current_cursor && cur != last_cursor_line {
+                    last_cursor_line = cur;
+                    let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                    clear_and_write(&ansi);
                 }
             }
         }
