@@ -7,7 +7,12 @@ mod watch;
 
 /// markdown preview daemon with editor integration
 #[derive(Parser)]
-#[command(name = "glance", version, about)]
+#[command(name = "glance", version, about = "", after_long_help = "Examples:
+  glance file.md              Open a webview window
+  glance --tui file.md        Render to terminal
+  glance --stdin --tui        Read markdown from stdin
+  glance --pipe --tui         Continuous mode from stdin
+  glance --tui --watch f.md   Watch file and re-render")]
 struct Cli {
     /// markdown file to preview
     file: Option<String>,
@@ -31,7 +36,6 @@ struct Cli {
     /// file to read cursor line from for scroll sync (only with --tui --watch)
     #[arg(long)]
     cursor_file: Option<String>,
-
 }
 
 fn validate_args(cli: &Cli) {

@@ -51,6 +51,9 @@ glance --tui --watch README.md
 
 # render from stdin
 echo "# hello" | glance --stdin --tui
+
+# continuous mode from stdin (for editor integrations)
+echo "8" | glance --pipe --tui
 ```
 
 neovim keymaps (set automatically on `*.md`):
