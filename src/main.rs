@@ -34,8 +34,28 @@ struct Cli {
 
 }
 
+fn validate_args(cli: &Cli) {
+    // cursor_file only valid with watch mode
+    if cli.cursor_file.is_some() && !(cli.tui && cli.watch) {
+        eprintln!("glance: --cursor_file requires --tui and --watch");
+        std::process::exit(1);
+    }
+
+    // stdin and pipe are mutually exclusive with other modes
+    if cli.stdin && (cli.pipe || cli.watch || cli.file.is_some()) {
+        eprintln!("glance: --stdin cannot be used with other file modes");
+        std::process::exit(1);
+    }
+
+    if cli.pipe && (cli.stdin || cli.watch || cli.file.is_some()) {
+        eprintln!("glance: --pipe cannot be used with other file modes");
+        std::process::exit(1);
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
+    validate_args(&cli);
 
     // stdin mode
     if cli.stdin {

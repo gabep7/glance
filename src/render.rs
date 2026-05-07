@@ -41,6 +41,6 @@ pub fn render(markdown: &str) -> String {
     html::push_html(&mut content, parser);
 
     HTML_TEMPLATE
-        .replace("{css}", CSS)
-        .replace("{content}", &content)
+        .replacen("{css}", CSS, 1)
+        .replacen("{content}", &content, 1)
 }
