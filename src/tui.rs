@@ -119,7 +119,7 @@ fn update_sgr(active: &mut Vec<u8>, params: &str) {
 
 /// compute proportional ansi line index from source cursor line
 fn calc_cursor_ansi(cursor_line: usize, source_lines: usize, total_ansi: usize) -> usize {
-    let ratio = cursor_line as f64 / (source_lines - 1).max(1) as f64;
+    let ratio = cursor_line as f64 / std::cmp::max(source_lines - 1, 1) as f64;
     ((ratio * (total_ansi - 1) as f64) as usize).min(total_ansi - 1)
 }
 
@@ -218,7 +218,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
     let md = fs::read_to_string(&path).unwrap_or_default();
     let mut cached_ansi = render_ansi(&md);
     let mut cached_sgr = sgr_at_line_starts(&cached_ansi);
-    let mut source_lines = md.lines().count().max(1);
+    let mut source_lines = std::cmp::max(md.lines().count(), 1);
     let mut last_cursor_line: usize = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
 
     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
@@ -255,7 +255,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                     let md = fs::read_to_string(&path).unwrap_or_default();
                     cached_ansi = render_ansi(&md);
                     cached_sgr = sgr_at_line_starts(&cached_ansi);
-                    source_lines = md.lines().count().max(1);
+                    source_lines = std::cmp::max(md.lines().count(), 1);
                     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                     clear_and_write(&ansi);
                 }
@@ -300,6 +300,50 @@ fn read_cursor_file(path: Option<&Path>) -> Option<usize> {
     let path = path?;
     let content = fs::read_to_string(path).ok()?;
     content.trim().parse().ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calc_cursor_ansi() {
+        // cursor at start
+        assert_eq!(calc_cursor_ansi(0, 10, 50), 0);
+        // cursor at end
+        assert_eq!(calc_cursor_ansi(9, 10, 50), 49);
+        // cursor at 50% (5/9 * 49 = 27.22)
+        assert_eq!(calc_cursor_ansi(5, 10, 50), 27);
+        // single line
+        assert_eq!(calc_cursor_ansi(0, 1, 100), 0);
+    }
+
+    #[test]
+    fn test_calc_cursor_ansi_zero_ansi() {
+        // edge case: only 1 ansi line
+        assert_eq!(calc_cursor_ansi(0, 10, 1), 0);
+    }
+
+    #[test]
+    fn test_sgr_at_line_starts() {
+        let ansi = "\x1b[31mred\n\x1b[32mgreen\nnormal";
+        let lines = sgr_at_line_starts(ansi);
+        // Only line starts are tracked (3 lines = 2 newlines = 3 entries)
+        assert_eq!(lines[0], "");
+        assert_eq!(lines[1], "\x1b[31m");
+        assert_eq!(lines[2], "\x1b[32m");
+        // No entry for last line after final newline
+        assert_eq!(lines.len(), 3);
+    }
+
+    #[test]
+    fn test_sgr_at_line_starts_empty() {
+        let ansi = "no ansi\nlines";
+        let lines = sgr_at_line_starts(ansi);
+        // 2 lines means 2 line-start entries
+        assert_eq!(lines.len(), 2);
+        assert!(lines.iter().all(|s| s.is_empty()));
+    }
 }
 
 
