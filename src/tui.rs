@@ -239,10 +239,6 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
     initial_render(&ansi.0);
 
-    // track viewport range on RHS to avoid unnecessary scrolls
-    let mut rhs_viewport_start = ansi.1;
-    let mut rhs_viewport_end = ansi.2;
-
     // Only re-render on file changes, not cursor changes
     // The cursor tracking is handled by the caller (neovim) writing to cursor_file
     // but we don't re-render on every cursor change to avoid excessive scrolling
@@ -287,23 +283,14 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
         }
 
         // check for cursor file watcher events
-        // Only re-render if cursor moves outside current viewport
         if let Ok(event) = cursor_rx.try_recv() {
             match event.kind {
                 EventKind::Modify(_) | EventKind::Create(_) => {
                     let current_cursor = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
                     if current_cursor != last_cursor_line {
                         last_cursor_line = current_cursor;
-                        // Convert source cursor to ANSI line index for comparison
-                        let total_ansi = cached_ansi.lines().count();
-                        let current_ansi = calc_cursor_ansi(current_cursor, source_lines, total_ansi);
-                        // Only re-render if ANSI cursor is outside current viewport
-                        if current_ansi < rhs_viewport_start || current_ansi > rhs_viewport_end {
-                            let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                            rhs_viewport_start = ansi.1;
-                            rhs_viewport_end = ansi.2;
-                            clear_and_write(&ansi.0);
-                        }
+                        let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                        clear_and_write(&ansi.0);
                     }
                 }
                 _ => {}
@@ -311,7 +298,6 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
         }
 
         // fallback: poll cursor file every 50ms (in case watcher misses events)
-        // Only re-render if cursor moves outside current viewport
         cursor_poll_count += 1;
         if cursor_poll_count >= 3 {
             cursor_poll_count = 0;
@@ -319,16 +305,8 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                 let current_cursor = read_cursor_file(Some(cp));
                 if let Some(cur) = current_cursor && cur != last_cursor_line {
                     last_cursor_line = cur;
-                    // Convert source cursor to ANSI line index for comparison
-                    let total_ansi = cached_ansi.lines().count();
-                    let current_ansi = calc_cursor_ansi(cur, source_lines, total_ansi);
-                    // Only re-render if ANSI cursor is outside current viewport
-                    if current_ansi < rhs_viewport_start || current_ansi > rhs_viewport_end {
-                        let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                        rhs_viewport_start = ansi.1;
-                        rhs_viewport_end = ansi.2;
-                        clear_and_write(&ansi.0);
-                    }
+                    let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                    clear_and_write(&ansi.0);
                 }
             }
         }
