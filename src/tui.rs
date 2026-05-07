@@ -146,8 +146,8 @@ fn render_viewport_from_cached(
     }
 
     let cursor_ansi = calc_cursor_ansi(cursor_line, source_lines, total_ansi);
-    // show cursor at 17% from top to minimize unnecessary scrolls
-    let start = cursor_ansi.saturating_sub(height / 6);
+    // show cursor at 25% from top to minimize unnecessary scrolls
+    let start = cursor_ansi.saturating_sub(height / 4);
     let start = start.min(total_ansi.saturating_sub(height));
 
     // Skip rendering if viewport is empty
