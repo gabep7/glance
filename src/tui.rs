@@ -206,51 +206,96 @@ pub fn pipe_mode() {
     }
 }
 
-/// watch a file via polling. cursor_file provides live cursor position for scroll sync.
+/// watch a file for changes and re-render. cursor_file provides live cursor position for scroll sync.
 pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
+    use std::sync::mpsc;
+    use notify::{EventKind, RecursiveMode, Watcher};
+
     let path = path.to_path_buf();
-    let mut last_mod = file_modified(&path);
+    let path = path.to_path_buf();
+    let cursor_file_path = cursor_file.map(PathBuf::from);
 
     // cache ansi + sgr so cursor-only changes skip markdown parsing
     let md = fs::read_to_string(&path).unwrap_or_default();
     let mut cached_ansi = render_ansi(&md);
     let mut cached_sgr = sgr_at_line_starts(&cached_ansi);
     let mut source_lines = md.lines().count().max(1);
-    let mut last_cursor_line: usize = read_cursor_file(cursor_file.as_deref()).unwrap_or(0);
+    let mut last_cursor_line: usize = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
 
     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
     initial_render(&ansi);
 
+    // setup file watcher
+    let (watch_tx, watch_rx) = mpsc::channel::<notify::Event>();
+    let mut watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+        let _ = watch_tx.send(res.unwrap_or_default());
+    })
+    .expect("failed to start file watcher");
+    watcher
+        .watch(&path, RecursiveMode::NonRecursive)
+        .expect("failed to watch file");
+
+    // setup cursor file watcher if provided
+    let (cursor_tx, cursor_rx) = mpsc::channel::<notify::Event>();
+    if let Some(ref cp) = cursor_file_path {
+        if let Ok(mut w) = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+            let _ = cursor_tx.send(res.unwrap_or_default());
+        }) {
+            let _ = w.watch(cp, RecursiveMode::NonRecursive);
+        }
+    }
+
+    // poll cursor file every 16ms (in case watcher misses events)
+    let mut cursor_poll_count = 0;
+
     loop {
-        std::thread::sleep(std::time::Duration::from_millis(16));
-
-        let content_changed = {
-            let current = file_modified(&path);
-            let changed = current != last_mod;
-            if changed {
-                last_mod = current;
+        // check for file watcher events
+        if let Ok(event) = watch_rx.try_recv() {
+            match event.kind {
+                EventKind::Modify(_) | EventKind::Create(_) => {
+                    let md = fs::read_to_string(&path).unwrap_or_default();
+                    cached_ansi = render_ansi(&md);
+                    cached_sgr = sgr_at_line_starts(&cached_ansi);
+                    source_lines = md.lines().count().max(1);
+                    let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                    clear_and_write(&ansi);
+                }
+                _ => {}
             }
-            changed
-        };
-
-        // compare cursor value directly — no mtime races
-        let current_cursor = read_cursor_file(cursor_file.as_deref()).unwrap_or(0);
-        let cursor_changed = current_cursor != last_cursor_line;
-        if cursor_changed {
-            last_cursor_line = current_cursor;
         }
 
-        if content_changed {
-            let md = fs::read_to_string(&path).unwrap_or_default();
-            cached_ansi = render_ansi(&md);
-            cached_sgr = sgr_at_line_starts(&cached_ansi);
-            source_lines = md.lines().count().max(1);
+        // check for cursor file watcher events
+        if let Ok(event) = cursor_rx.try_recv() {
+            match event.kind {
+                EventKind::Modify(_) | EventKind::Create(_) => {
+                    let current_cursor = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
+                    if current_cursor != last_cursor_line {
+                        last_cursor_line = current_cursor;
+                        let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                        clear_and_write(&ansi);
+                    }
+                }
+                _ => {}
+            }
         }
 
-        if content_changed || cursor_changed {
-            let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-            clear_and_write(&ansi);
+        // fallback: poll cursor file every 16ms (in case watcher misses events)
+        cursor_poll_count += 1;
+        if cursor_poll_count >= 1 {
+            cursor_poll_count = 0;
+            if let Some(cp) = &cursor_file_path {
+                let current_cursor = read_cursor_file(Some(cp));
+                if let Some(cur) = current_cursor {
+                    if cur != last_cursor_line {
+                        last_cursor_line = cur;
+                        let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                        clear_and_write(&ansi);
+                    }
+                }
+            }
         }
+
+        std::thread::sleep(std::time::Duration::from_millis(16));
     }
 }
 
@@ -260,6 +305,4 @@ fn read_cursor_file(path: Option<&Path>) -> Option<usize> {
     content.trim().parse().ok()
 }
 
-fn file_modified(path: &Path) -> Option<std::time::SystemTime> {
-    std::fs::metadata(path).ok()?.modified().ok()
-}
+
