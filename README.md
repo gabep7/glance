@@ -12,6 +12,15 @@ markdown preview that scrolls with your cursor. terminal-first, editor-optional.
 - cursor moves in source, preview scrolls to match
 - edits appear in real time, no save needed
 
+## features
+
+- live preview with scroll sync
+- native webview or terminal rendering
+- real-time file watching
+- neovim integration with `:Glance`
+- dark mode support (follows system)
+- no browser or runtime dependencies
+
 ## install
 
 **standalone** (prebuilt binaries on [releases](https://github.com/gabep7/glance/releases)):
