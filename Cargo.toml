@@ -1,6 +1,6 @@
 [package]
 name = "glance-md"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2024"
 description = "Markdown preview that scrolls with your cursor. Terminal-first, editor-optional."
 license = "MIT"
