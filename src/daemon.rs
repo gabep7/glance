@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tao::window::WindowBuilder;
@@ -32,6 +34,8 @@ pub fn run(path: &Path) {
         .expect("failed to start file watcher");
     std::thread::spawn(move || {
         for changed in watcher_rx {
+            // Debounce reloads to avoid excessive re-renders on rapid changes
+            thread::sleep(Duration::from_millis(50));
             let _ = watch_proxy.send_event(UserEvent::Reload(changed));
         }
     });
