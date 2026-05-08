@@ -235,6 +235,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
     let mut cached_sgr = sgr_at_line_starts(&cached_ansi);
     let mut source_lines = std::cmp::max(md.lines().count(), 1);
     let mut last_cursor_line: usize = read_cursor_file(cursor_file_path.as_deref()).unwrap_or(0);
+    let mut last_rendered = String::new();
 
     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
     initial_render(&ansi.0);
@@ -272,11 +273,15 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
             match event.kind {
                 EventKind::Modify(_) | EventKind::Create(_) => {
                     let md = fs::read_to_string(&path).unwrap_or_default();
-                    cached_ansi = render_ansi(&md);
-                    cached_sgr = sgr_at_line_starts(&cached_ansi);
-                    source_lines = std::cmp::max(md.lines().count(), 1);
-                    let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
-                    clear_and_write(&ansi.0);
+                    let new_ansi = render_ansi(&md);
+                    if new_ansi != cached_ansi {
+                        cached_ansi = new_ansi;
+                        cached_sgr = sgr_at_line_starts(&cached_ansi);
+                        source_lines = std::cmp::max(md.lines().count(), 1);
+                        let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
+                        clear_and_write(&ansi.0);
+                        last_rendered = ansi.0;
+                    }
                 }
                 _ => {}
             }
@@ -291,6 +296,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                         last_cursor_line = current_cursor;
                         let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                         clear_and_write(&ansi.0);
+                        last_rendered = ansi.0;
                     }
                 }
                 _ => {}
@@ -307,6 +313,7 @@ pub fn poll_watch(path: &Path, cursor_file: Option<PathBuf>) {
                     last_cursor_line = cur;
                     let ansi = render_viewport_from_cached(&cached_ansi, &cached_sgr, source_lines, last_cursor_line);
                     clear_and_write(&ansi.0);
+                    last_rendered = ansi.0;
                 }
             }
         }
@@ -340,7 +347,7 @@ mod tests {
     #[test]
     fn test_calc_cursor_ansi_zero_ansi() {
         // edge case: only 1 ansi line
-        assert_eq!(calc_cursor_ansi(0, 10, 1), 0);
+        assert_eq!(calc_cursor_ansi(0, 1, 1), 0);
     }
 
     #[test]
@@ -364,5 +371,3 @@ mod tests {
         assert!(lines.iter().all(|s| s.is_empty()));
     }
 }
-
-

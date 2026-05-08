@@ -44,3 +44,20 @@ pub fn render(markdown: &str) -> String {
         .replacen("{css}", CSS, 1)
         .replacen("{content}", &content, 1)
 }
+
+/// Render markdown to HTML without the full HTML template wrapper.
+/// Useful for embedding or inline previews.
+pub fn render_inline(markdown: &str) -> String {
+    let mut options = Options::empty();
+    options.insert(Options::ENABLE_TABLES);
+    options.insert(Options::ENABLE_FOOTNOTES);
+    options.insert(Options::ENABLE_STRIKETHROUGH);
+    options.insert(Options::ENABLE_TASKLISTS);
+    options.insert(Options::ENABLE_HEADING_ATTRIBUTES);
+
+    let parser = Parser::new_ext(markdown, options);
+
+    let mut content = String::new();
+    html::push_html(&mut content, parser);
+    content
+}
