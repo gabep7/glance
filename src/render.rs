@@ -47,7 +47,7 @@ pub fn render(markdown: &str) -> String {
 
 /// Render markdown to HTML without the full HTML template wrapper.
 /// Useful for embedding or inline previews.
-pub fn render_inline(markdown: &str) -> String {
+pub fn _render_inline(markdown: &str) -> String {
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TABLES);
     options.insert(Options::ENABLE_FOOTNOTES);
