@@ -24,7 +24,7 @@ Type ""
 Enter
 Type "- **live preview** -- renders as you type"
 Enter
-Type "- **scroll sync** -- preview follows your cursor"
+Type "- **scroll sync** -- keeps the preview aligned"
 Enter
 Type "- *terminal-first*, with an optional webview window"
 Enter
@@ -64,7 +64,7 @@ Type "## quickstart"
 Enter
 Type ""
 Enter
-Type "Open any markdown file and run `:Glance`. A split opens on the right with the rendered preview. Move your cursor and the preview scrolls to match."
+Type "Open any markdown file and run `:Glance`. A split opens on the right with the rendered preview and keeps pace while you edit."
 Enter
 Type ""
 Enter

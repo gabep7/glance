@@ -1,6 +1,6 @@
 # glance
 
-> live markdown previewer
+Fast markdown preview for your editor or terminal.
 
 ## features
 
