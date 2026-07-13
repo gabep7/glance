@@ -55,6 +55,8 @@ Sleep 1500ms
 Enter
 Sleep 1000ms
 
+# exit insert mode before running commands
+Escape
 # close and quit
 Type ":GlanceStop"
 Enter
