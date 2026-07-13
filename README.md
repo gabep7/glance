@@ -1,43 +1,12 @@
 # glance
 
-fast markdown preview for your editor or terminal.
+markdown preview that lives in your nvim split.
 
 ![glance demo](demo.gif)
 
-## overview
-
-- `glance file.md` opens a native webview window with rendered markdown
-- `glance --tui file.md` renders in the terminal instead
-- `:Glance` in neovim opens a live side-by-side preview
-- preview stays aligned as you edit
-- edits appear in real time, no save needed
-
-## features
-
-- live preview with scroll sync
-- native webview or terminal rendering
-- real-time file watching
-- neovim integration with `:Glance`
-- dark mode support (follows system)
-- no browser or runtime dependencies
-
 ## install
 
-**standalone** (prebuilt binaries on [releases](https://github.com/gabep7/glance/releases)):
-
-```bash
-# macOS
-brew install gabep7/tap/glance
-
-# or download from releases
-curl -L https://github.com/gabep7/glance/releases/latest/download/glance-macos-arm64 -o /usr/local/bin/glance
-chmod +x /usr/local/bin/glance
-
-# cargo
-cargo install glance-md
-```
-
-**neovim** (lazy.nvim):
+lazy.nvim:
 
 ```lua
 {
@@ -49,23 +18,11 @@ cargo install glance-md
 }
 ```
 
-## usage
+requires a rust toolchain (`cargo`) for the build step.
 
-```
-# terminal preview
-glance --tui README.md
+## keymaps
 
-# watch mode, re-renders on change
-glance --tui --watch README.md
-
-# render from stdin
-echo "# hello" | glance --stdin --tui
-
-# continuous mode from stdin (for editor integrations)
-echo "8" | glance --pipe --tui
-```
-
-neovim keymaps (set automatically on `*.md`):
+set automatically on `*.md` buffers:
 
 | key | action |
 |-----|--------|
@@ -75,14 +32,6 @@ neovim keymaps (set automatically on `*.md`):
 | `:Glance` | open preview |
 | `:GlanceStop` | close preview |
 
-> **Note:** the crate is `glance-md` but the binary is still named `glance`.
-
 ## how it works
 
-neovim opens a `:terminal` split running `glance --tui --watch` against a temp file. edits and position updates are written to temp files. a 30ms rust poll loop picks up changes and re-renders ANSI to the terminal. no daemon, no socket, no config.
-
-the preview viewport is proportional -- cursor at 30% through the source shows 30% through the rendered output. ANSI SGR state is tracked so sliced lines don't break formatting. terminal height comes from `ioctl(TIOCGWINSZ)`, not `$LINES`.
-
-## why
-
-most markdown previewers bring a browser tab, a node runtime, or a headless server along for the ride. glance is one binary, no runtime dependencies, and a preview that keeps its place while you write.
+opens a `:terminal` split running a rust binary that renders markdown to ANSI. the binary watches a temp file; nvim writes buffer content on every change. cursor position is written to a second temp file for scroll sync. no daemon, no socket, no browser.
