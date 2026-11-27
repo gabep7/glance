@@ -18,6 +18,8 @@ lazy.nvim:
 }
 ```
 
+add `version = "*"` to stay on tagged releases instead of `main`.
+
 ## keymaps
 
 set on markdown buffers:
