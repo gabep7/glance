@@ -13,7 +13,7 @@ jobs:
       matrix:
         nvim: [v0.9.5, stable]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
