@@ -9,7 +9,7 @@ Set Padding 0
 
 Hide
 
-Type "cp ~/Projects/Personal/glance/demo.md /tmp/demo.md"
+Type "cp demo.md /tmp/demo.md"
 Enter
 Sleep 200ms
 
