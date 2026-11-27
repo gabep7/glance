@@ -60,3 +60,5 @@ the preview is a scratch buffer in a split. on every change the source buffer is
 ```bash
 nvim --headless -u NONE -l tests/run.lua
 ```
+
+regenerate `demo.gif` with `python3 demo/record.py` (needs `msgpack` and `pillow`).

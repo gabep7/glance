@@ -120,9 +120,15 @@ local function sync_scroll()
 
   -- keep the target at the same screen row the cursor has in the source
   local screen_row = api.nvim_win_call(state.src_win, vim.fn.winline)
-  local topline = math.max(1, target - screen_row + 1)
   api.nvim_win_call(state.win, function()
+    -- start from a buffer-line estimate, then walk down until wrapped lines
+    -- above the target no longer push it below the wanted screen row
+    local topline = math.max(1, target - screen_row + 1)
     vim.fn.winrestview({ topline = topline, lnum = target, col = 0 })
+    while topline < target and vim.fn.winline() > screen_row do
+      topline = topline + 1
+      vim.fn.winrestview({ topline = topline, lnum = target, col = 0 })
+    end
   end)
 end
 

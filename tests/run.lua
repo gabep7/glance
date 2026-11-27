@@ -119,5 +119,28 @@ vim.cmd("bwipeout!")
 vim.wait(100)
 eq(vim.api.nvim_buf_is_valid(pbuf), false, "preview gone with source")
 
+-- screen-row alignment needs a real ui: attach one to a child nvim
+local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h")
+local chan = vim.fn.jobstart({ vim.v.progpath, "--embed", "-u", "NONE", "-n", "--cmd", "set rtp^=" .. root }, { rpc = true })
+vim.rpcrequest(chan, "nvim_ui_attach", 120, 34, { rgb = false })
+vim.rpcrequest(chan, "nvim_exec_lua", [[
+  vim.o.number = true
+  vim.cmd("edit " .. ...)
+  require("glance").setup()
+  require("glance").open()
+]], { root .. "/demo.md" })
+for _, row in ipairs({ 20, 33, 42, 45, 59, 66 }) do
+  local rows = vim.rpcrequest(chan, "nvim_exec_lua", [[
+    local row = ...
+    vim.api.nvim_win_set_cursor(0, { row, 0 })
+    vim.cmd("normal! zb")
+    vim.api.nvim_exec_autocmds("CursorMoved", { buffer = 0 })
+    local preview = vim.fn.win_getid(vim.fn.winnr("l"))
+    return { vim.fn.winline(), vim.api.nvim_win_call(preview, vim.fn.winline) }
+  ]], { row })
+  eq(rows[2], rows[1], "preview line on same screen row (line " .. row .. ")")
+end
+vim.fn.jobstop(chan)
+
 print(("%d/%d passed"):format(count - failures, count))
 vim.cmd(failures > 0 and "cquit 1" or "qall!")

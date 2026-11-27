@@ -1,77 +1,66 @@
 # glance
 
-> markdown preview in your nvim split
+> markdown preview that lives in your nvim split
+
+glance renders your buffer as you type, right next to it. **no browser**, *no binary*, no build step. just `lua`.
 
 ## features
 
 - live preview on every keystroke
-- scroll sync with cursor position
-- pure lua, no binary, no browser
+- exact scroll sync, even past code and tables
 - treesitter highlighting in code blocks
-- tables, task lists, quotes
+- tables, task lists, quotes and links
+  - nested lists too
+    - as deep as you like
 
-## code
+## setup
 
-```rust
-fn main() {
-    let nums = (1..100)
-        .filter(|n| n % 2 == 0)
-        .map(|n| n * n)
-        .collect::<Vec<_>>();
-    println!(nums.len());
+```lua
+{
+  "gabep7/glance",
+  ft = "markdown",
+  opts = {
+    position = "right",
+    scroll_sync = true,
+  },
 }
 ```
 
-## usage
+## keys
 
-| key | action |
-| --- | --- |
-| `<leader>gp` | toggle |
-| `<leader>gf` | focus |
-| `<leader>gs` | freeze sync |
-| `:Glance` | open |
-| `:GlanceStop` | close |
-
-## install
-
-```lua
-{ "gabep7/glance", ft = "markdown" }
-```
+| key          | action               |
+| ------------ | -------------------- |
+| `<leader>gp` | toggle preview       |
+| `<leader>gf` | jump to preview      |
+| `<leader>gs` | toggle scroll sync   |
+| `:Glance`    | open                 |
 
 ## how it works
 
-the preview is a scratch buffer in a split. on every change the source buffer is re-rendered in lua and drawn with extmark highlights. no temp files, no file watcher, no external process.
-
-no daemon, no socket, no browser.
-
-## scroll sync
-
-every source line maps to its rendered line, so the preview follows your cursor exactly, even past tables and code blocks.
+every change re-renders the source in lua and paints the result with extmark highlights. each source line maps to a rendered line:
 
 ```lua
-local target = state.map[cursor_row]
-vim.fn.winrestview({ topline = target - screen_row + 1 })
+local function sync(map, row)
+  local target = map[row] or #map
+  vim.fn.winrestview({ topline = target })
+end
 ```
 
-the rendered line is kept at the same screen row as your cursor, so the two splits stay side by side.
+so the preview keeps your place while you write.
 
-## why another previewer
+---
 
-most markdown previewers bring a browser tab, a node runtime, or a headless server along for the ride. glance is a few hundred lines of lua, and a preview that keeps its place while you write.
+## why
 
-- browser-based tools spawn a headless server and open a tab
-- static TUI tools are one-shot: edit, save, re-run
-- glance renders inside your editor split and updates on every keystroke
+1. most previewers bring a browser tab along
+2. static TUI tools are one-shot: edit, save, re-run
+3. glance stays in your split and updates as you type
+
+see the [readme](README.md) for config and highlight groups.
 
 ## roadmap
 
-- [x] neovim integration
+- [x] live preview
 - [x] scroll sync
-- [x] live reload
-- [x] proportional viewport
-- [ ] helix support
-- [ ] zed support
-
-## license
-
-MIT
+- [x] tables and task lists
+- [ ] images
